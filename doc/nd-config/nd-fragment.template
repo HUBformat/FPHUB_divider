@@ -1,0 +1,24 @@
+<link rel="stylesheet" href="../styles/main.css" type="text/css">
+<script>
+(function(){
+  var parentHtml = window.parent.document.documentElement;
+  var myHtml = document.documentElement;
+
+  function syncTheme(){
+    // Get parent classes and perform replacement
+    var classes = parentHtml.className.replace(
+      /\bNDFramePage\b/g, 
+      'NDContentPage'
+    );
+    
+    // Apply modified class list
+    myHtml.className = classes;
+  }
+
+  syncTheme();
+
+  new MutationObserver(syncTheme)
+    .observe(parentHtml, { attributes: true, attributeFilter: ['class'] });
+})();
+</script>
+$body$
