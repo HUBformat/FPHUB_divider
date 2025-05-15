@@ -1,0 +1,1 @@
+﻿NDSearch.OnPrefixDataLoaded("gen",["Section"],[["generation",,[[,"Special result generation",,,0,"File:special_result_for_divider.sv:Special_result_generation"]]]]);

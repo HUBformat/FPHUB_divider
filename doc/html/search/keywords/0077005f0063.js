@@ -1,0 +1,1 @@
+﻿NDSearch.OnPrefixDataLoaded("w_c",["Variable"],[["w_current,",,[[,"w_current, w_next, w_current_2",,"w_current,w_next,w_current_2",0,"File:FPHUB_divider.sv:w_current,w_next,w_current_2"]]],["w_current_2",,[[,"w_current, w_next, w_current_2",,"w_current,w_next,w_current_2",0,"File:FPHUB_divider.sv:w_current,w_next,w_current_2"]]]]);

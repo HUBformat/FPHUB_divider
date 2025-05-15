@@ -1,1 +1,1 @@
-﻿NDMenu.OnSectionLoaded("files.js",[[1,"FPHUB_divider.sv"]]);
+﻿NDMenu.OnSectionLoaded("files.js",[[1,"FPHUB_divider.sv"],[1,"special_cases_detector.sv"],[1,"special_result_for_divider.sv"]]);

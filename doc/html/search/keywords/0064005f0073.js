@@ -1,0 +1,1 @@
+﻿NDSearch.OnPrefixDataLoaded("d_s",["Variable"],[["d_sign",,[[,"x_sign, d_sign",,"x_sign,d_sign",0,"File:FPHUB_divider.sv:x_sign,d_sign"]]],["d_signed",,[[,,,,0,"File:FPHUB_divider.sv:d_signed"]]],["d_special_case",,[[,,,,0,"File:FPHUB_divider.sv:d_special_case"]]]]);

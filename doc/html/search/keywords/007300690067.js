@@ -1,0 +1,1 @@
+﻿NDSearch.OnPrefixDataLoaded("sig",["Section"],[["Signals",,[[,"Fixed-point to floating-point conversion signals",,,0,"File:FPHUB_divider.sv:Fixed-point_to_floating-point_conversion_signals"],[,"Intermediate Signals declaration",,,0,"File:FPHUB_divider.sv:Intermediate_Signals_declaration"]]]]);

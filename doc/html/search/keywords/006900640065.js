@@ -1,0 +1,1 @@
+﻿NDSearch.OnPrefixDataLoaded("ide",["Section"],[["identifiers",,[[,"Special case identifiers",,,0,"File:special_cases_detector.sv:Special_case_identifiers"]]]]);
