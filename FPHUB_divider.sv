@@ -38,14 +38,16 @@ module FPHUB_divider #(
     parameter int one_implicit_bit = 1,
     parameter int ilsb_bit = 1,
     parameter int extra_int_bit = 1,
-    parameter int extra_bits_mantisa = sign_mantissa_bit + one_implicit_bit + ilsb_bit + extra_int_bit
+    parameter int extra_bit_x_mayorque_d = 1,
+    parameter int extra_bits_mantisa = sign_mantissa_bit + one_implicit_bit + ilsb_bit + extra_int_bit + extra_bit_x_mayorque_d
 )(
     input  logic        clk,        
     input  logic        rst_l,     
     input  logic        start,    
     input  logic [M+E:0] x,          
     input  logic [M+E:0] d,          
-    output logic [M+E:0] res,       
+    output logic [M+E:0] res,      
+    output logic [7:0] res_exponent, 
     output logic        finish,       
     output logic        computing
 );
@@ -130,10 +132,10 @@ module FPHUB_divider #(
     /* Variable: x_mantissa, d_mantissa
         Mantissas of operands x and d.
     */
-    logic[one_implicit_bit + M + ilsb_bit:0] x_mantissa, d_mantissa; 
+    logic[one_implicit_bit + M + ilsb_bit + extra_bit_x_mayorque_d:0] x_mantissa, d_mantissa; //TODO: test extra bit x_mayorque_d
     
-    assign x_mantissa = (x_exponent == '0) ? 0 : {1'b1, x[M-1:0], 1'b1, 1'b0}; 
-    assign d_mantissa = (d_exponent == '0) ? 0 : {1'b1, d[M-1:0], 1'b1, 1'b0};
+    assign x_mantissa =  {1'b1, x[M-1:0], 1'b1, 1'b0, 1'b0}; //TODO: test extra bit x_mayorque_d
+    assign d_mantissa =  {1'b1, d[M-1:0], 1'b1, 1'b0, 1'b0};
 
     /* Variable: x_exponent, d_exponent
         Exponents of operands x and d.
@@ -180,7 +182,7 @@ module FPHUB_divider #(
     /* Variable: quotient
         quotient obtained from the SRT algorithm
     */
-    logic [M+E:0] quotient, restored_quotient;
+    logic [M+E:0] quotient;
 
     /* Variable: restored_quotient
         final quotient of the operation. It is obtained by multiplying by 2 the original <quotient>.
@@ -198,7 +200,7 @@ module FPHUB_divider #(
     /* Variable: res_exponent
         Exponent of the computed value
     */
-    logic [E-1:0] res_exponent;
+    //logic [E-1:0] res_exponent;
 
     /* Variable: res_mantissa
         Mantissa of the computed value
@@ -224,12 +226,16 @@ module FPHUB_divider #(
         Computed value reconstructed to floating-point format
     */
     logic [M+E:0] float_result;
+
+    logic x_mayorque_d; //TODO test 
  
 
     // Main algorithm
     always_comb begin   
 
         finish = 0;
+        //x_mayorque_d = 0; //test
+        //res_exponent = '0;
 
         /*-------------------------
               Initialization
@@ -245,6 +251,13 @@ module FPHUB_divider #(
             res= '0;
             posiv = '0;
             neg = '0;
+            if (x_mantissa > d_mantissa) begin  // TODO: test extra bit x_mayorque_d
+                res_exponent =  (x_exponent+1) - d_exponent + 8'd127;
+                x_mayorque_d = 1'b1;
+            end else begin
+                res_exponent = x_exponent-d_exponent + 8'd127;
+            end
+            
             for (int i = 0; i<=N; i++) begin
                 q[i] = 0;
             end
@@ -258,12 +271,12 @@ module FPHUB_divider #(
         if (computing && iter_count < N) begin
 
             // if current w*2 is greater or equal to 0.5
-            if(w_current_2 >= 28'sh1000000) begin  //Original
+            if(w_current_2 >= 28'sh2000000) begin  //Original
             //if(w_current_2 >= $signed(1 << (M+extra_bits_mantisa-1))) begin
                 q[iter_count+1] = 1;    
 
             // if current w*2 is lower than -0.5
-            end else if (w_current_2 < 28'shF000000)  begin  //Original
+            end else if (w_current_2 < 28'shE000000)  begin  //Original
             //end else if (w_current_2 < $signed({1'b1, {(M+extra_bits_mantisa-4){1'b1}}, 4'b0000})) begin
                 q[iter_count+1] = -1;
 
@@ -315,12 +328,15 @@ module FPHUB_divider #(
             restored_quotient = quotient << 1;
             
             // Extract sign bit
-            res_sign = restored_quotient[M+E];
+            //res_sign = restored_quotient[M+E];
+            res_sign = 1'b0;
             
             // Handle special case: zero
             if (restored_quotient == '0) begin 
                 res = '0; 
             end else begin
+
+                res_mantissa = restored_quotient[30:8];
 
                 // Take absolute value 
                 abs_fixed = res_sign ? (~restored_quotient + 1'b1) : restored_quotient;
@@ -332,11 +348,15 @@ module FPHUB_divider #(
                     leading_zeros = leading_zeros + 1;
                 end
                 
+                if (!leading_zeros) begin
+                    res_exponent = res_exponent+1;
+                end
+                
                 // Normalize the fixed-point value
                 normalized = abs_fixed << leading_zeros;
                 
                 // Calculate exponent
-                res_exponent = 8'd127 - leading_zeros; //TODO: revisar
+                //res_exponent = 8'd127 - leading_zeros; //TODO: revisar
                 
                 // Extract mantissa, drop the implicit 1
                 res_mantissa = normalized[M+E-1:E];
@@ -365,6 +385,7 @@ module FPHUB_divider #(
             iter_count <= '0;
             computing <= 1'b0;
             w_current <= '0;    
+            //res_exponent <= '0;
         end
         else begin
 
@@ -373,9 +394,15 @@ module FPHUB_divider #(
                 // Initialize computation
                 iter_count <= '0;
                 computing <= 1'b1;
+                //res_exponent <= x_exponent-d_exponent + 8'd127;
 
                 // Sign + extra int bit + mantissa
                 // In SRT algorithm, the first remainder is obtained dividing by 2 the original value
+
+                if (x_mantissa > d_mantissa) begin  // TODO: test extra bit x_mayorque_d
+                    w_current <= {x_sign, 1'b0, (x_mantissa >> 2)};
+                    //res_exponent
+                end
                 w_current <= {x_sign, 1'b0, (x_mantissa >> 1)};
                 
                 // Sign + extra int bit + mantissa
