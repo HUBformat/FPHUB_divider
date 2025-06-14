@@ -201,6 +201,7 @@ module FPHUB_divider #(
         Exponent of the computed value
     */
     //logic [E-1:0] res_exponent;
+    logic signed [E+1:0] test_exponent;
 
     /* Variable: res_mantissa
         Mantissa of the computed value
@@ -245,16 +246,30 @@ module FPHUB_divider #(
         if (start && !computing && special_case_detected) begin
             res = special_result;   
             finish=1;
+         //TODO: revisar exponente   
+         end else if (test_exponent < 0) begin
+            finish = 1;
+            res = '0;
+            test_exponent = 1;
+            computing <= 1'b0;
+         end else if (test_exponent >255) begin
+            finish = 1;
+            res = 32'h7fffffff;
+            test_exponent = 1;
+            computing <= 1'b0;
 
         // If a new operation starts and it is NOT a special case
         end else if (start && !computing) begin
             res= '0;
             posiv = '0;
             neg = '0;
+            
             if (x_mantissa > d_mantissa) begin  // TODO: test extra bit x_mayorque_d
+                test_exponent = (x_exponent+1) - d_exponent + 8'd127;
                 res_exponent =  (x_exponent+1) - d_exponent + 8'd127;
                 x_mayorque_d = 1'b1;
             end else begin
+                test_exponent = x_exponent-d_exponent + 8'd127;
                 res_exponent = x_exponent-d_exponent + 8'd127;
             end
             
@@ -329,7 +344,7 @@ module FPHUB_divider #(
             
             // Extract sign bit
             //res_sign = restored_quotient[M+E];
-            res_sign = 1'b0;
+            //res_sign = 1'b0;
             
             // Handle special case: zero
             if (restored_quotient == '0) begin 
@@ -348,9 +363,9 @@ module FPHUB_divider #(
                     leading_zeros = leading_zeros + 1;
                 end
                 
-                if (!leading_zeros) begin
-                    res_exponent = res_exponent+1;
-                end
+              //  if (!leading_zeros) begin
+               //     res_exponent = res_exponent+1;
+                //end
                 
                 // Normalize the fixed-point value
                 normalized = abs_fixed << leading_zeros;
@@ -385,6 +400,7 @@ module FPHUB_divider #(
             iter_count <= '0;
             computing <= 1'b0;
             w_current <= '0;    
+            res_sign <= 1'b0;
             //res_exponent <= '0;
         end
         else begin
@@ -394,6 +410,7 @@ module FPHUB_divider #(
                 // Initialize computation
                 iter_count <= '0;
                 computing <= 1'b1;
+                res_sign <= x_sign ^ d_sign; // new
                 //res_exponent <= x_exponent-d_exponent + 8'd127;
 
                 // Sign + extra int bit + mantissa
