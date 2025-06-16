@@ -231,6 +231,10 @@ module FPHUB_divider #(
     logic x_mayorque_d; //TODO test 
  
 
+    logic test_num;
+    logic [28:0] mag_result;
+logic result_sign;
+
     // Main algorithm
     always_comb begin   
 
@@ -251,12 +255,12 @@ module FPHUB_divider #(
             finish = 1;
             res = '0;
             test_exponent = 1;
-            computing <= 1'b0;
+            //computing <= 1'b0; //TODO: fix
          end else if (test_exponent >255) begin
             finish = 1;
             res = 32'h7fffffff;
             test_exponent = 1;
-            computing <= 1'b0;
+            //computing <= 1'b0; //TODO: fix
 
         // If a new operation starts and it is NOT a special case
         end else if (start && !computing) begin
@@ -282,25 +286,71 @@ module FPHUB_divider #(
               Main SRT Algorithm
         ----------------------------*/
 
+        
+
         // If there is an operation in progress
         if (computing && iter_count < N) begin
 
             // if current w*2 is greater or equal to 0.5
             if(w_current_2 >= 28'sh2000000) begin  //Original
             //if(w_current_2 >= $signed(1 << (M+extra_bits_mantisa-1))) begin
-                q[iter_count+1] = 1;    
+                q[iter_count+1] = 1; 
+                //w_next = w_current_2 - d_signed;   
+
+                // --------------- TEST --------------------
+
+                     if (w_current_2[28] == ~d_signed[28]) begin
+                    // Same sign → add magnitudes
+                    mag_result = w_current_2[27:0] + d_signed[27:0];
+                    result_sign = w_current_2[28];
+                end else begin
+                    // Opposite signs → subtract smaller from larger
+                    if (w_current_2[27:0] >= d_signed[27:0]) begin
+                        mag_result = w_current_2[27:0] - d_signed[27:0];
+                        result_sign = w_current_2[28];  // mag_a is bigger, keep its sign
+                    end else begin
+                        mag_result = d_signed[27:0] - w_current_2[27:0];
+                        result_sign = ~d_signed[28];  // mag_b is bigger, keep its sign
+                    end
+                end
+                w_next = {result_sign, mag_result};
+                // ---------------------------------------
 
             // if current w*2 is lower than -0.5
             end else if (w_current_2 < 28'shE000000)  begin  //Original
             //end else if (w_current_2 < $signed({1'b1, {(M+extra_bits_mantisa-4){1'b1}}, 4'b0000})) begin
                 q[iter_count+1] = -1;
 
+                //-----------------------------------
+                        //TEST
+                if (w_current_2[28] == d_signed[28]) begin
+                    // Same sign → add magnitudes
+                    mag_result = w_current_2[27:0] + d_signed[27:0];
+                    result_sign = w_current_2[28];
+                end else begin
+                    // Opposite signs → subtract smaller from larger
+                    if (w_current_2[27:0] >= d_signed[27:0]) begin
+                        mag_result = w_current_2[27:0] - d_signed[27:0];
+                        result_sign = w_current_2[28];  // mag_a is bigger, keep its sign
+                    end else begin
+                        mag_result = d_signed[27:0] - w_current_2[27:0];
+                        result_sign = d_signed[28];  // mag_b is bigger, keep its sign
+                    end
+                end
+                w_next = {result_sign, mag_result};
+
+               // w_next =  $signed(d_signed) + $signed(w_current_2); 
+                test_num = 1'b1;
+
+                //--------------------------------------------
+
             //if current w*2 is greater or equal to -0.5 and lower than 0.5
             end else begin
                 q[iter_count+1] = 0;
+                w_next = w_current_2;
             end
 
-            w_next = w_current_2 -q[iter_count+1]*d_signed;
+           // w_next = w_current_2 -(q[iter_count+1]*d_signed);
         end
 
         /*--------------------------------
