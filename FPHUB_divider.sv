@@ -351,15 +351,15 @@ logic result_sign;
                 res = '0;  
             end else begin  */
 
-                res_mantissa = restored_quotient[30:8];
+                //res_mantissa = restored_quotient[30:8]; //test_negativo
 
                 // Take absolute value 
-                abs_fixed = res_sign ? (~restored_quotient + 1'b1) : restored_quotient;
+                //abs_fixed = res_sign ? (~restored_quotient + 1'b1) : restored_quotient;
                 
                 // Count leading zeros
                 leading_zeros = 0;
                 for (int i = M+E; i >= 0; i--) begin
-                    if (abs_fixed[i] == 1) break;
+                    if (restored_quotient[i] == 1) break;
                     leading_zeros = leading_zeros + 1;
                 end
                 
@@ -368,7 +368,7 @@ logic result_sign;
                 //end
                 
                 // Normalize the fixed-point value
-                normalized = abs_fixed << leading_zeros;
+                normalized = restored_quotient << leading_zeros;
                 
                 // Calculate exponent
                 //res_exponent = 8'd127 - leading_zeros; //TODO: revisar
@@ -409,12 +409,12 @@ logic result_sign;
 
             if (test_exponent < $signed(9'd0)) begin
                     finish <= 1;
-                    res <= '0;
+                    res <= {res_sign, 31'd0};
                     test_exponent <= 1; // para evitar que se vuelva a ejecutar
                     computing <= 1'b0; 
                 end else if (test_exponent > $signed(9'd255)) begin
                     finish <= 1;
-                    res <= 32'h7fffffff;
+                    res <= {res_sign, 31'h7fffffff};
                     test_exponent <= 1;
                     computing <= 1'b0; 
                 end 
@@ -444,25 +444,25 @@ logic result_sign;
                     // In SRT algorithm, the first remainder is obtained dividing by 2 the original value
 
                     if (x_mantissa > d_mantissa) begin  // TODO: test extra bit x_mayorque_d
-                        w_current <= {x_sign, 1'b0, (x_mantissa >> 2)};
+                        w_current <= {1'b0, 1'b0, (x_mantissa >> 2)}; //test_negativo: se ha sustituido el signo por 0  
                         test_exponent <= (x_exponent+1) - d_exponent + 8'd127;
                         res_exponent <=  (x_exponent+1) - d_exponent + 8'd127;   
                         //res_exponent
                     end else begin
-                        w_current <= {x_sign, 1'b0, (x_mantissa >> 1)};
+                        w_current <= {1'b0, 1'b0, (x_mantissa >> 1)};  //test_negativo: se ha sustituido el signo por 0  
                         test_exponent <= x_exponent-d_exponent + 8'd127;
                         res_exponent <= x_exponent-d_exponent + 8'd127;
                     end
                     
                     
                     // Sign + extra int bit + mantissa
-                    d_signed = {d_sign, 1'b0, d_mantissa};      
+                    d_signed = {1'b0, 1'b0, d_mantissa};    //test_negativo: se ha sustituido el signo por 0  
 
 
             // If there is an operation in progress
             end else if (computing && iter_count < N) begin
                 iter_count <= iter_count +1;
-                w_current <= w_next;
+                //w_current <= w_next;
 
                 // if current w*2 is greater or equal to 0.5
                 if((!w_current_2[28]) &&  w_current_2[27:0] >= 28'b0100000000000000000000000000) begin 
