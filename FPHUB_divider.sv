@@ -238,7 +238,9 @@ logic result_sign;
     // Main algorithm
     always_comb begin   
 
-        finish = 0;
+       /// finish = 0;
+
+       
         //x_mayorque_d = 0; //test
         //res_exponent = '0;
 
@@ -246,25 +248,9 @@ logic result_sign;
               Initialization
         -------------------------*/
 
-        // If a new operation starts and it IS a special case
-        if (start && !computing && special_case_detected) begin
-            res = special_result;   
-            finish=1;
-         //TODO: revisar exponente   
-         end else if (test_exponent < 0) begin
-            finish = 1;
-            res = '0;
-            test_exponent = 1;
-            //computing <= 1'b0; //TODO: fix
-         end else if (test_exponent >255) begin
-            finish = 1;
-            res = 32'h7fffffff;
-            test_exponent = 1;
-            //computing <= 1'b0; //TODO: fix
-
         // If a new operation starts and it is NOT a special case
-        end else if (start && !computing) begin
-            res= '0;
+        if (start && !computing) begin
+
             posiv = '0;
             neg = '0;
             
@@ -277,9 +263,6 @@ logic result_sign;
                 res_exponent = x_exponent-d_exponent + 8'd127;
             end
             
-            for (int i = 0; i<=N; i++) begin
-                q[i] = 0;
-            end
 
         end
         /*---------------------------
@@ -291,67 +274,39 @@ logic result_sign;
         // If there is an operation in progress
         if (computing && iter_count < N) begin
 
-            // if current w*2 is greater or equal to 0.5
-            if((!w_current_2[28]) &&  w_current_2[27:0] >= 28'b0100000000000000000000000000) begin  // 29'sh4000000 Original          //0010 0000 ...     00010100010110100001110010000
-            //if(w_current_2 >= $signed(1 << (M+extra_bits_mantisa-1))) begin
-                q[iter_count+1] = 1; 
-                //w_next = w_current_2 - d_signed;   
+            if((!w_current_2[28]) &&  w_current_2[27:0] >= 28'b0100000000000000000000000000) begin 
 
-                // --------------- TEST --------------------
-
-                     if (w_current_2[28] == (!d_signed[28])) begin
-                    // Same sign → add magnitudes
-                    mag_result = w_current_2[27:0] + d_signed[27:0];
-                    result_sign = w_current_2[28];
-                end else begin
-                    // Opposite signs → subtract smaller from larger
-                    if (w_current_2[27:0] >= d_signed[27:0]) begin
-                        mag_result = w_current_2[27:0] - d_signed[27:0];
-                        result_sign = w_current_2[28];  // mag_a is bigger, keep its sign
+                if (w_current_2[28] == (!d_signed[28])) begin
+                        // Same sign → add magnitudes
+                        mag_result = w_current_2[27:0] + d_signed[27:0];
+                        result_sign = w_current_2[28];
                     end else begin
-                        mag_result = d_signed[27:0] - w_current_2[27:0];
-                        result_sign = (!d_signed[28]);  // mag_b is bigger, keep its sign
-                        test_num = 1'b1;
+                        // Opposite signs → subtract smaller from larger
+                        if (w_current_2[27:0] >= d_signed[27:0]) begin
+                            mag_result = w_current_2[27:0] - d_signed[27:0];
+                            result_sign = w_current_2[28];  // mag_a is bigger, keep its sign
+                        end else begin
+                            mag_result = d_signed[27:0] - w_current_2[27:0];
+                            result_sign = (!d_signed[28]);  // mag_b is bigger, keep its sign
+                        end
                     end
-                end
-                w_next = {result_sign, mag_result};
-                // ---------------------------------------
+            end else if ((w_current_2[28]) &&  w_current_2[27:0] >= 28'b0100000000000000000000000000) begin 
 
-            // if current w*2 is lower than -0.5
-            end else if ((w_current_2[28]) &&  w_current_2[27:0] >= 28'b0100000000000000000000000000) begin //Original          // 10001000001100010010011111000   1 1100 0000...
-            //end else if (w_current_2 < $signed({1'b1, {(M+extra_bits_mantisa-4){1'b1}}, 4'b0000})) begin
-                q[iter_count+1] = -1;
-
-                //-----------------------------------
-                        //TEST
-                if (w_current_2[28] == d_signed[28]) begin
-                    // Same sign → add magnitudes
-                    mag_result = w_current_2[27:0] + d_signed[27:0];
-                    result_sign = w_current_2[28];
-                end else begin
-                    // Opposite signs → subtract smaller from larger
-                    if (w_current_2[27:0] >= d_signed[27:0]) begin
-                        mag_result = w_current_2[27:0] - d_signed[27:0];
-                        result_sign = w_current_2[28];  // mag_a is bigger, keep its sign
+                    if (w_current_2[28] == d_signed[28]) begin
+                        // Same sign → add magnitudes
+                        mag_result = w_current_2[27:0] + d_signed[27:0];
+                        result_sign = w_current_2[28];
                     end else begin
-                        mag_result = d_signed[27:0] - w_current_2[27:0];
-                        result_sign = d_signed[28];  // mag_b is bigger, keep its sign
+                        // Opposite signs → subtract smaller from larger
+                        if (w_current_2[27:0] >= d_signed[27:0]) begin
+                            mag_result = w_current_2[27:0] - d_signed[27:0];
+                            result_sign = w_current_2[28];  // mag_a is bigger, keep its sign
+                        end else begin
+                            mag_result = d_signed[27:0] - w_current_2[27:0];
+                            result_sign = d_signed[28];  // mag_b is bigger, keep its sign
+                        end
                     end
-                end
-                w_next = {result_sign, mag_result};
-
-               // w_next =  $signed(d_signed) + $signed(w_current_2); 
-                
-
-                //--------------------------------------------
-
-            //if current w*2 is greater or equal to -0.5 and lower than 0.5
-            end else begin
-                q[iter_count+1] = 0;
-                w_next = w_current_2;
-            end
-
-           // w_next = w_current_2 -(q[iter_count+1]*d_signed);
+            end 
         end
 
         /*--------------------------------
@@ -360,21 +315,18 @@ logic result_sign;
 
         if(iter_count == N) begin
             
-            posiv[N] = 0;
-            neg[N] = 0;
 
             // Obtain the positions in which quotient q has a 1 or a -1
             for (int i = 1; i <= N; i++) begin
                 if (q[i] == 1) begin
                     posiv[N-i] = 1; 
-                    neg[N-i] = 0; //TODO: remove?
                 end
                 else if (q[i] == -1) begin
-                    posiv[N-i] = 0; //TODO: remove?
                     neg[N-i] = 1;
                 end
 
-            
+            end
+
             // If final remainder is negative
             if (w_current[M+extra_bits_mantisa]) begin
                 quotient = (posiv - neg) -1'b1;
@@ -383,7 +335,7 @@ logic result_sign;
                 quotient = posiv - neg;
             end
 
-            end
+            
             
 
             /*--------------------------------------------------
@@ -398,9 +350,9 @@ logic result_sign;
             //res_sign = 1'b0;
             
             // Handle special case: zero
-            if (restored_quotient == '0) begin 
-                res = '0; 
-            end else begin
+            /*if (restored_quotient == '0) begin 
+                res = '0;  
+            end else begin  */
 
                 res_mantissa = restored_quotient[30:8];
 
@@ -428,15 +380,15 @@ logic result_sign;
                 res_mantissa = normalized[M+E-1:E];
                 
                 // Assemble IEEE 754 floating-point result
-                float_result = {res_sign, res_exponent, res_mantissa};
+                //float_result = {res_sign, res_exponent, res_mantissa};
 
             /*--------------------------------------------------
                 Fixed point to floating point conversion end
             ---------------------------------------------------*/               
-                res = float_result;
-            end
+               // res = float_result;
+            
 
-            finish = 1;
+            //finish = 1;
         end
 
     end
@@ -452,40 +404,91 @@ logic result_sign;
             computing <= 1'b0;
             w_current <= '0;    
             res_sign <= 1'b0;
+            res <= '0;
+            finish <= 1'b0;
             //res_exponent <= '0;
         end
         else begin
 
+            // If a new operation starts and it IS a special case
+            if (start && !computing && special_case_detected) begin
+                res <= special_result;   
+                finish <=1;
+            //TODO: revisar exponente   
+            end else 
+
             // if a new operation begins and it is not a special case
             if (start && !computing && !special_case_detected) begin
-                // Initialize computation
-                iter_count <= '0;
-                computing <= 1'b1;
-                res_sign <= x_sign ^ d_sign; // new
-                //res_exponent <= x_exponent-d_exponent + 8'd127;
-
-                // Sign + extra int bit + mantissa
-                // In SRT algorithm, the first remainder is obtained dividing by 2 the original value
-
-                if (x_mantissa > d_mantissa) begin  // TODO: test extra bit x_mayorque_d
-                    w_current <= {x_sign, 1'b0, (x_mantissa >> 2)};
-                    //res_exponent
-                end
-                w_current <= {x_sign, 1'b0, (x_mantissa >> 1)};
                 
-                // Sign + extra int bit + mantissa
-                d_signed = {d_sign, 1'b0, d_mantissa};
+                //TODO cambiar
+                if (test_exponent < 0) begin
+                    finish <= 1;
+                    res <= '0;
+                    //test_exponent <= 1; // ???
+                    //computing <= 1'b0; //TODO: fix
+                end else if (test_exponent >255) begin
+                    finish <= 1;
+                    res <= 32'h7fffffff;
+                    //test_exponent <= 1;
+                    //computing <= 1'b0; //TODO: fix
+                end else begin
+                    // Initialize computation
+                    iter_count <= '0;
+                    computing <= 1'b1;
+                    res_sign <= x_sign ^ d_sign; // new
+                    finish <= 1'b0;
+                    res <= '0;
+                    //posiv <= '0;
+                    //neg <= '0;
+
+                    // Sign + extra int bit + mantissa
+                    // In SRT algorithm, the first remainder is obtained dividing by 2 the original value
+
+                    if (x_mantissa > d_mantissa) begin  // TODO: test extra bit x_mayorque_d
+                        w_current <= {x_sign, 1'b0, (x_mantissa >> 2)};
+                        //res_exponent
+                    end
+                    w_current <= {x_sign, 1'b0, (x_mantissa >> 1)};
+                    
+                    // Sign + extra int bit + mantissa
+                    d_signed = {d_sign, 1'b0, d_mantissa};
+
+                end
+
+
 
             // If there is an operation in progress
             end else if (computing && iter_count < N) begin
                 iter_count <= iter_count +1;
                 w_current <= w_next;
 
-            // If current operation is about to finish or if there is no operation
-            end else begin
+                // if current w*2 is greater or equal to 0.5
+                if((!w_current_2[28]) &&  w_current_2[27:0] >= 28'b0100000000000000000000000000) begin 
+                    q[iter_count+1] <= 1;                        
+                    w_current <= {result_sign, mag_result};              
+
+                // if current w*2 is lower than -0.5
+                end else if ((w_current_2[28]) &&  w_current_2[27:0] >= 28'b0100000000000000000000000000) begin 
+                    q[iter_count+1] <= -1;
+                    w_current <= {result_sign, mag_result};
+                    
+                //if current w*2 is greater or equal to -0.5 and lower than 0.5
+                end else begin
+                    q[iter_count+1] <= 0;
+                    w_current <= w_current_2;
+                end
+
+            end else if (iter_count == N) begin
+
+                res <= {res_sign, res_exponent, res_mantissa};
                 computing <= 1'b0;
                 iter_count <= '0;
+                finish <= 1'b1;
+            end else begin
+                finish <= 1'b0;
+                res <= '0;
             end
+       
             
         end
     end
