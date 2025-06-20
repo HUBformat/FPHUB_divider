@@ -47,7 +47,6 @@ module FPHUB_divider #(
     input  logic [M+E:0] x,          
     input  logic [M+E:0] d,          
     output logic [M+E:0] res,      
-    output logic [7:0] res_exponent, 
     output logic        finish,       
     output logic        computing
 );
@@ -200,7 +199,7 @@ module FPHUB_divider #(
     /* Variable: res_exponent
         Exponent of the computed value
     */
-    //logic [E-1:0] res_exponent;
+    logic [E-1:0] res_exponent;
     logic signed [E+1:0] test_exponent;
 
     /* Variable: res_mantissa
@@ -255,12 +254,10 @@ logic result_sign;
             neg = '0;
             
             if (x_mantissa > d_mantissa) begin  // TODO: test extra bit x_mayorque_d
-                test_exponent = (x_exponent+1) - d_exponent + 8'd127;
-                res_exponent =  (x_exponent+1) - d_exponent + 8'd127;
+                
                 x_mayorque_d = 1'b1;
             end else begin
-                test_exponent = x_exponent-d_exponent + 8'd127;
-                res_exponent = x_exponent-d_exponent + 8'd127;
+                
             end
             
 
@@ -410,28 +407,30 @@ logic result_sign;
         end
         else begin
 
+            if (test_exponent < $signed(9'd0)) begin
+                    finish <= 1;
+                    res <= '0;
+                    test_exponent <= 1; // para evitar que se vuelva a ejecutar
+                    computing <= 1'b0; 
+                end else if (test_exponent > $signed(9'd255)) begin
+                    finish <= 1;
+                    res <= 32'h7fffffff;
+                    test_exponent <= 1;
+                    computing <= 1'b0; 
+                end 
+
             // If a new operation starts and it IS a special case
-            if (start && !computing && special_case_detected) begin
+            else if (start && !computing && special_case_detected) begin
                 res <= special_result;   
                 finish <=1;
             //TODO: revisar exponente   
             end else 
 
             // if a new operation begins and it is not a special case
-            if (start && !computing && !special_case_detected) begin
+            if (start &&  !computing && !special_case_detected) begin
                 
                 //TODO cambiar
-                if (test_exponent < 0) begin
-                    finish <= 1;
-                    res <= '0;
-                    //test_exponent <= 1; // ???
-                    //computing <= 1'b0; //TODO: fix
-                end else if (test_exponent >255) begin
-                    finish <= 1;
-                    res <= 32'h7fffffff;
-                    //test_exponent <= 1;
-                    //computing <= 1'b0; //TODO: fix
-                end else begin
+                
                     // Initialize computation
                     iter_count <= '0;
                     computing <= 1'b1;
@@ -446,15 +445,18 @@ logic result_sign;
 
                     if (x_mantissa > d_mantissa) begin  // TODO: test extra bit x_mayorque_d
                         w_current <= {x_sign, 1'b0, (x_mantissa >> 2)};
+                        test_exponent <= (x_exponent+1) - d_exponent + 8'd127;
+                        res_exponent <=  (x_exponent+1) - d_exponent + 8'd127;   
                         //res_exponent
+                    end else begin
+                        w_current <= {x_sign, 1'b0, (x_mantissa >> 1)};
+                        test_exponent <= x_exponent-d_exponent + 8'd127;
+                        res_exponent <= x_exponent-d_exponent + 8'd127;
                     end
-                    w_current <= {x_sign, 1'b0, (x_mantissa >> 1)};
+                    
                     
                     // Sign + extra int bit + mantissa
-                    d_signed = {d_sign, 1'b0, d_mantissa};
-
-                end
-
+                    d_signed = {d_sign, 1'b0, d_mantissa};      
 
 
             // If there is an operation in progress
