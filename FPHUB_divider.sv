@@ -32,21 +32,24 @@
 module FPHUB_divider #(
     parameter int M = 23,
     parameter int E = 8,
-    parameter int N = E + M, 
+    parameter int N = 31, 
+    localparam int T = M+E,
+    localparam int EXP_BIAS = 1 << (E - 1),
+    localparam int EXP_BIAS_LOW = EXP_BIAS -1,
     parameter int special_case = 7,
     parameter int sign_mantissa_bit = 1,
     parameter int one_implicit_bit = 1,
     parameter int ilsb_bit = 1,
     parameter int extra_int_bit = 1,
     parameter int extra_bit_x_mayorque_d = 1,
-    parameter int extra_bits_mantisa = sign_mantissa_bit + one_implicit_bit + ilsb_bit + extra_int_bit + extra_bit_x_mayorque_d
+    parameter int extra_bits_mantissa = sign_mantissa_bit + one_implicit_bit + ilsb_bit + extra_int_bit + extra_bit_x_mayorque_d
 )(
     input  logic        clk,        
     input  logic        rst_l,     
     input  logic        start,    
-    input  logic [M+E:0] x,          
-    input  logic [M+E:0] d,          
-    output logic [M+E:0] res,      
+    input  logic [T:0] x,          
+    input  logic [T:0] d,          
+    output logic [T:0] res,      
     output logic        finish,       
     output logic        computing
 );
@@ -69,7 +72,7 @@ module FPHUB_divider #(
     /* Variable: special_result
         Stores the result of the operation when a special case is detected.
     */
-    logic [M+E:0] special_result;
+    logic [T:0] special_result;
 
     /* Variable: x_special_case
         Encodes the type of special case for operand x.
@@ -125,8 +128,8 @@ module FPHUB_divider #(
     */
     logic x_sign, d_sign;
 
-    assign x_sign = x[M+E];
-    assign d_sign = d[M+E]; 
+    assign x_sign = x[T];
+    assign d_sign = d[T]; 
 
     /* Variable: x_mantissa, d_mantissa
         Mantissas of operands x and d.
@@ -141,8 +144,8 @@ module FPHUB_divider #(
     */
     logic[E-1:0]  x_exponent, d_exponent;
 
-    assign x_exponent = x[M+E-1:M];
-    assign d_exponent = d[M+E-1:M];
+    assign x_exponent = x[T-1:M];
+    assign d_exponent = d[T-1:M];
     
     /* Variable: w_current, w_next, w_current_2
         Variables containing the current remainder, the remainder of the next iteration of the algorithm, and the current remainder multiplied by 2.
@@ -151,14 +154,14 @@ module FPHUB_divider #(
 
         In 32-bit format, this translates to:  Sign bit + Extra int bit + Implicit 1 bit from IEEE-754 + 24 bits from HUB mantissa + Extra fractional bit -> 28 bits
     */
-    logic signed [M+extra_bits_mantisa:0] w_current, w_next, w_current_2; 
+    logic signed [M + extra_bits_mantissa:0] w_current, w_next, w_current_2; 
     
-    assign w_current_2 = {w_current[M+extra_bits_mantisa], shifted_w_current[M+extra_bits_mantisa-1:0]}; 
+    assign w_current_2 = {w_current[M + extra_bits_mantissa], shifted_w_current[M + extra_bits_mantissa-1:0]}; 
 
     /* Variable: d_signed
         Field containing the HUB value of operand d. It has the same format as <w_current, w_next, w_current_2>
     */
-    logic signed [M+extra_bits_mantisa:0] d_signed;
+    logic signed [M + extra_bits_mantissa:0] d_signed;
 
     /* Variable: posiv
         Signal containing the positions in which que quotient <q> has a 1
@@ -170,7 +173,7 @@ module FPHUB_divider #(
     */
     logic [N:0] neg;
 
-    logic [M+extra_bits_mantisa:0] shifted_w_current;
+    logic [M + extra_bits_mantissa:0] shifted_w_current;
     assign shifted_w_current = w_current << 1;
 
 
@@ -181,14 +184,14 @@ module FPHUB_divider #(
     /* Variable: quotient
         quotient obtained from the SRT algorithm
     */
-    logic [M+E:0] quotient;
+    logic [T:0] quotient;
 
     /* Variable: restored_quotient
         final quotient of the operation. It is obtained by multiplying by 2 the original <quotient>.
         
         The reason for this is that the first w value is obtained by dividing by 2 the operand x.
     */
-    logic [M+E:0] restored_quotient;
+    logic [T:0] restored_quotient;
 
     
     /* Variable: res_sign
@@ -210,7 +213,7 @@ module FPHUB_divider #(
     /* Variable: abs_fixed
         Absolute value of the <restored_quotient>
     */
-    logic [M+E:0] abs_fixed;
+    logic [T:0] abs_fixed;
     
     /* Variable: leading_zeros
         Number of leading zeros in the absolute value of the restored quotient
@@ -220,12 +223,12 @@ module FPHUB_divider #(
     /* Variable: normalized
         Normalized value of the restored quotient, used to obtain the <res_mantissa>
     */
-    logic [M+E:0] normalized;
+    logic [T:0] normalized;
     
     /* Variable: float_result
         Computed value reconstructed to floating-point format
     */
-    logic [M+E:0] float_result;
+    logic [T:0] float_result;
 
     // Main algorithm
     always_comb begin   
@@ -259,7 +262,7 @@ module FPHUB_divider #(
             end
 
             // If final remainder is negative
-            if (w_current[M+extra_bits_mantisa]) begin
+            if (w_current[M + extra_bits_mantissa]) begin
                 quotient = (posiv - neg) -1'b1;
             end else begin
                 quotient = posiv - neg;
@@ -270,7 +273,7 @@ module FPHUB_divider #(
 
             // Count leading zeros
             leading_zeros = 0;    
-            for (int i = M+E; i >= 0; i--) begin
+            for (int i = T; i >= 0; i--) begin
                 if (restored_quotient[i] == 1) break;
                 leading_zeros = leading_zeros + 1;
             end
@@ -279,7 +282,7 @@ module FPHUB_divider #(
             normalized = restored_quotient << leading_zeros;
                     
             // Extract mantissa, drop the implicit 1
-            res_mantissa = normalized[M+E-1:E];           
+            res_mantissa = normalized[T-1:E];           
         end
 
     end
@@ -304,14 +307,14 @@ module FPHUB_divider #(
         else begin
 
             // If the result exponent is out of bounds
-            if (exponent_bound < $signed(9'd0)) begin
+            if (exponent_bound < $signed({{1{1'b0}}, E'(0)})) begin
                     finish <= 1'b1;
-                    res <= {res_sign, 31'd0};
+                    res <= {res_sign, (T)'(0)};
                     exponent_bound <= '0; // to avoid repeated execution
                     computing <= 1'b0; 
-                end else if (exponent_bound > $signed(9'd255)) begin
+                end else if (exponent_bound > $signed({1'b0, {(E){1'b1}}})) begin
                     finish <= 1'b1;
-                    res <= {res_sign, 31'h7fffffff};
+                    res <= {res_sign, {(T){1'b1}}};
                     exponent_bound <= '0;
                     computing <= 1'b0; 
                 end 
@@ -337,12 +340,12 @@ module FPHUB_divider #(
                     // BUT if x_mantissa is greater than d_mantissa, we must divide it again and update the exponent
                     if (x_mantissa > d_mantissa) begin  
                         w_current <= {1'b0, 1'b0, (x_mantissa >> 2)};  //
-                        exponent_bound <= (x_exponent) - d_exponent + 8'd128;
-                        res_exponent <=  (x_exponent) - d_exponent + 8'd128;   
+                        exponent_bound <= x_exponent - d_exponent + EXP_BIAS;
+                        res_exponent <=  x_exponent- d_exponent + EXP_BIAS; 
                     end else begin
                         w_current <= {1'b0, 1'b0, (x_mantissa >> 1)}; 
-                        exponent_bound <= x_exponent-d_exponent + 8'd127;
-                        res_exponent <= x_exponent-d_exponent + 8'd127;
+                        exponent_bound <= x_exponent-d_exponent + EXP_BIAS_LOW;
+                        res_exponent <= x_exponent-d_exponent + EXP_BIAS_LOW;
                     end
                     
                     
@@ -355,12 +358,12 @@ module FPHUB_divider #(
                 iter_count <= iter_count +1;
 
                 // if current w*2 is greater or equal to 0.5
-                if((!w_current_2[28]) && w_current_2[27:26] >= 2'b01) begin  
+                if((!w_current_2[M+extra_bits_mantissa]) && w_current_2[M + extra_bits_mantissa-1:M+extra_bits_mantissa-2] >= 2'b01) begin  
                     q[iter_count+1] <= 1;                          
                     w_current <= w_current_2 - d_signed;         
 
                 // if current w*2 is lower than -0.5
-                end else if ((w_current_2[28]) && w_current_2[27:26] >=  2'b01) begin  
+                end else if ((w_current_2[M+extra_bits_mantissa]) && w_current_2[M + extra_bits_mantissa-1:M+extra_bits_mantissa-2] >= 2'b01) begin  
                     q[iter_count+1] <= -1;
                     w_current <= w_current_2 + d_signed;    
                     
