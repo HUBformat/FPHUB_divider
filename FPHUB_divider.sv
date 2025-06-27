@@ -9,14 +9,16 @@
       Implements a floating-point radix-2 SRT divider for HUB format
 
   Parameters:
-      M - Width of the mantissa.
-      E - Width of the exponent.
-      N - Number of iterations.
+      M - Width of the mantissa (23 by default).
+      E - Width of the exponent (8 by default).
+      N - Number of iterations (31 by default)
+      T - Total length of the operands.
       special_case - Number of special case identifiers (e.g., 0 = none, 1 = +inf, etc.).
       sign_mantissa_bit - Width of the sign bit added to mantissa extension.
       one_implicit_bit - Implicit leading one in normalized mantissas.
       ilsb_bit - Extra bit for rounding support (Implicit Least Significant Bit).
       extra_int_bit - Extra bit for the integer part of the number.
+      extra_bit_x_gt_d - Extra bit used when X's mantissa is greater than D's mantissa
       extra_bits_mantissa - Total number of extra bits added to the mantissa.
  
   Ports:
@@ -30,28 +32,28 @@
       computing - Indicates the operation is in progress.
  */
 module FPHUB_divider #(
-    parameter int M = 23,
-    parameter int E = 8,
-    parameter int N = 31, 
-    localparam int T = M+E,
-    localparam int EXP_BIAS = 1 << (E - 1),
-    localparam int EXP_BIAS_LOW = EXP_BIAS -1,
-    parameter int special_case = 7,
-    parameter int sign_mantissa_bit = 1,
-    parameter int one_implicit_bit = 1,
-    parameter int ilsb_bit = 1,
-    parameter int extra_int_bit = 1,
-    parameter int extra_bit_x_mayorque_d = 1,
-    parameter int extra_bits_mantissa = sign_mantissa_bit + one_implicit_bit + ilsb_bit + extra_int_bit + extra_bit_x_mayorque_d
+    parameter int   M = 23,
+    parameter int   E = 8,
+    parameter int   N = 31, 
+    localparam int  T = M+E,
+    localparam int  EXP_BIAS = 1 << (E - 1),
+    localparam int  EXP_BIAS_LOW = EXP_BIAS -1,
+    localparam int  special_case = 7,
+    localparam int  sign_mantissa_bit = 1,
+    localparam int  one_implicit_bit = 1,
+    localparam int  ilsb_bit = 1,
+    localparam int  extra_int_bit = 1,
+    localparam int  extra_bit_x_gt_d = 1,
+    localparam int  extra_bits_mantissa = sign_mantissa_bit + one_implicit_bit + ilsb_bit + extra_int_bit + extra_bit_x_gt_d
 )(
-    input  logic        clk,        
-    input  logic        rst_l,     
-    input  logic        start,    
-    input  logic [T:0] x,          
-    input  logic [T:0] d,          
-    output logic [T:0] res,      
-    output logic        finish,       
-    output logic        computing
+    input  logic            clk,        
+    input  logic            rst_l,     
+    input  logic            start,    
+    input  logic [T:0]      x,          
+    input  logic [T:0]      d,          
+    output logic [T:0]      res,      
+    output logic            finish,       
+    output logic            computing
 );
 
     /* Section: Special Case Handling
@@ -134,7 +136,7 @@ module FPHUB_divider #(
     /* Variable: x_mantissa, d_mantissa
         Mantissas of operands x and d.
     */
-    logic[one_implicit_bit + M + ilsb_bit + extra_bit_x_mayorque_d:0] x_mantissa, d_mantissa;
+    logic[one_implicit_bit + M + ilsb_bit + extra_bit_x_gt_d:0] x_mantissa, d_mantissa;
     
     assign x_mantissa =  {1'b1, x[M-1:0], 1'b1, 1'b0, 1'b0}; 
     assign d_mantissa =  {1'b1, d[M-1:0], 1'b1, 1'b0, 1'b0};
@@ -203,17 +205,16 @@ module FPHUB_divider #(
         Exponent of the computed value
     */
     logic [E-1:0] res_exponent;
+
+    /* Variable: exponent_bound
+        Used to determine if the resulting exponent is out of bounds
+    */
     logic signed [E+1:0] exponent_bound;
 
     /* Variable: res_mantissa
         Mantissa of the computed value
     */
     logic [M-1:0] res_mantissa;
-
-    /* Variable: abs_fixed
-        Absolute value of the <restored_quotient>
-    */
-    logic [T:0] abs_fixed;
     
     /* Variable: leading_zeros
         Number of leading zeros in the absolute value of the restored quotient
@@ -225,12 +226,8 @@ module FPHUB_divider #(
     */
     logic [T:0] normalized;
     
-    /* Variable: float_result
-        Computed value reconstructed to floating-point format
-    */
-    logic [T:0] float_result;
 
-    // Main algorithm
+    // Combinational Logic
     always_comb begin   
 
         /*-------------------------
@@ -328,29 +325,29 @@ module FPHUB_divider #(
             // if a new operation begins and it is NOT a special case
             if (start &&  !computing && !special_case_detected) begin
                 
-                    iter_count <= '0;
-                    computing <= 1'b1;
-                    res_sign <= x_sign ^ d_sign; 
-                    finish <= 1'b0;
-                    res <= '0;
+                iter_count <= '0;
+                computing <= 1'b1;
+                res_sign <= x_sign ^ d_sign; 
+                finish <= 1'b0;
+                res <= '0;
 
-                    // W_current: Positive sign + extra int bit + mantissa
-                    
-                    // In SRT algorithm, the first remainder is obtained dividing by 2 the original value
-                    // BUT if x_mantissa is greater than d_mantissa, we must divide it again and update the exponent
-                    if (x_mantissa > d_mantissa) begin  
-                        w_current <= {1'b0, 1'b0, (x_mantissa >> 2)};  //
-                        exponent_bound <= x_exponent - d_exponent + EXP_BIAS;
-                        res_exponent <=  x_exponent- d_exponent + EXP_BIAS; 
-                    end else begin
-                        w_current <= {1'b0, 1'b0, (x_mantissa >> 1)}; 
-                        exponent_bound <= x_exponent-d_exponent + EXP_BIAS_LOW;
-                        res_exponent <= x_exponent-d_exponent + EXP_BIAS_LOW;
-                    end
-                    
-                    
-                    // Positive sign + extra int bit + mantissa
-                    d_signed <= {1'b0, 1'b0, d_mantissa}; 
+                // W_current: Positive sign + extra int bit + mantissa
+                
+                // In SRT algorithm, the first remainder is obtained dividing by 2 the original value
+                // BUT if x_mantissa is greater than d_mantissa, we must divide it again and update the exponent
+                if (x_mantissa > d_mantissa) begin  
+                    w_current <= {1'b0, 1'b0, (x_mantissa >> 2)};  //
+                    exponent_bound <= x_exponent - d_exponent + EXP_BIAS;
+                    res_exponent <=  x_exponent- d_exponent + EXP_BIAS; 
+                end else begin
+                    w_current <= {1'b0, 1'b0, (x_mantissa >> 1)}; 
+                    exponent_bound <= x_exponent-d_exponent + EXP_BIAS_LOW;
+                    res_exponent <= x_exponent-d_exponent + EXP_BIAS_LOW;
+                end
+                
+                
+                // Positive sign + extra int bit + mantissa
+                d_signed <= {1'b0, 1'b0, d_mantissa}; 
 
 
            // If there is an operation in progress
@@ -373,19 +370,19 @@ module FPHUB_divider #(
                     w_current <= w_current_2;
                 end
 
+            // Termination Phase
             end else if (iter_count == N) begin
 
                 res <= {res_sign, res_exponent, res_mantissa};
                 computing <= 1'b0;
                 iter_count <= '0;
                 finish <= 1'b1;
+
+            // In any other case, reset finish and res signals
             end else begin
                 finish <= 1'b0;
                 res <= '0;
-            end
-       
-            
+            end      
         end
     end
-
 endmodule
