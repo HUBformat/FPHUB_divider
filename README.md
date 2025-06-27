@@ -2,7 +2,7 @@
 
 ## Overview
 
-This module implements a custom **SRT radix-2 floating-point divider** using a simplified, educational format referred to as **HUB**. The design supports normalized numbers only, and handles key IEEE 754-style special cases like ±zero, ±infinity, and ±one. The goal is to offer a modular, understandable architecture for floating-point division in digital systems.
+This module implements a custom **SRT radix-2 floating-point divider** using a simplified, educational format referred to as **HUB**. The design supports normalized numbers only, and handles key IEEE 754-style special cases like ±zero and ±infinity. The goal is to offer a modular, understandable architecture for floating-point division in digital systems.
 
 The core component (`FPHUB_divider`) takes two inputs in HUB format and returns a correctly computed division, managing alignment, normalization, and special cases through a series of coordinated submodules.
 
@@ -23,7 +23,7 @@ There are **no subnormals**. Even when the exponent is zero, the implicit one is
 ## Key Features
 
 - **Modular architecture**: The design is split into dedicated, self-contained submodules.
-- **Special case support (WIP)**: Recognizes and handles ±0, ±1, and ±∞.
+- **Special case support (WIP)**: Recognizes and handles ±0 and ±∞.
 
 ---
 
@@ -36,7 +36,12 @@ There are **no subnormals**. Even when the exponent is zero, the implicit one is
 
 ## Result Composition (WIP)
 
-The output is a valid HUB-formatted floating-point number.
+After computations, the final result is assembled from:
+- Sign bit (`res_sign`)
+- Normalized exponent (`res_exponent`)
+- Most significant bits of the mantissa (`res_mantissa`)
+
+the output is a valid HUB-formatted floating-point number.
 
 ---
 
@@ -51,17 +56,13 @@ To integrate the divider into your own project:
 
 ### Parameterization (WIP)
 
-The divider will be **fully parameterizable (WIP)**:
+The divider is **fully parameterizable (WIP)**:
 - You can adjust the number of exponent bits (`E`) and mantissa bits (`M`) via parameters.
 - By default, the module uses **E = 8** and **M = 23**, which corresponds to a 32-bit floating-point format (1 + 8 + 23 bits).
 - This allows easy scaling of precision for custom applications, embedded systems, or educational experiments.
 
 ---
 
-## Simulation Support (WIP)
-
-
----
 
 ## License
 
