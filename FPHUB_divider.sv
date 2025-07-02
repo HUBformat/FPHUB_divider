@@ -91,12 +91,14 @@ module FPHUB_divider #(
     */
     logic special_case_detected;
     assign special_case_detected = start && (x_special_case | d_special_case); 
-
+    
     special_cases_detector #(E,M,special_case) special_cases_inst (
+        .clk(clk),
+        .rst_l(rst_l),
         .X(x),
         .Y(d),
         .X_special_case(x_special_case),
-        .Y_special_case(d_special_case)
+        .Y_special_case(d_special_case),
     );
 
     special_result_for_divider #(E, M, special_case) special_result_inst (
@@ -305,25 +307,26 @@ module FPHUB_divider #(
 
             // If the result exponent is out of bounds
             if (exponent_bound < $signed({{1{1'b0}}, E'(0)})) begin
-                    finish <= 1'b1;
-                    res <= {res_sign, (T)'(0)};
-                    exponent_bound <= '0; // to avoid repeated execution
-                    computing <= 1'b0; 
-                end else if (exponent_bound > $signed({1'b0, {(E){1'b1}}})) begin
-                    finish <= 1'b1;
-                    res <= {res_sign, {(T){1'b1}}};
-                    exponent_bound <= '0;
-                    computing <= 1'b0; 
-                end 
+                finish <= 1'b1;
+                res <= {res_sign, (T)'(0)};
+                exponent_bound <= '0; // to avoid repeated execution
+                computing <= 1'b0; 
+            end else if (exponent_bound > $signed({1'b0, {(E){1'b1}}})) begin
+                finish <= 1'b1;
+                res <= {res_sign, {(T){1'b1}}};
+                exponent_bound <= '0;
+                computing <= 1'b0; 
+             
 
             // If a new operation starts and it IS a special case
-            else if (start && !computing && special_case_detected) begin
+            end else if (/*start*/ /*&& !computing &&*/ special_case_detected) begin
                 res <= special_result;   
                 finish <= 1'b1;
-            end else 
-
-            // if a new operation begins and it is NOT a special case
-            if (start &&  !computing && !special_case_detected) begin
+                computing <= 1'b0;
+                
+            end
+                          // if a new operation begins and it is NOT a special case
+            else if (start &&  /*!computing &&*/ ~special_case_detected) begin
                 
                 iter_count <= '0;
                 computing <= 1'b1;
@@ -335,12 +338,19 @@ module FPHUB_divider #(
                 
                 // In SRT algorithm, the first remainder is obtained dividing by 2 the original value
                 // BUT if x_mantissa is greater than d_mantissa, we must divide it again and update the exponent
-                if (x_mantissa > d_mantissa) begin  
+                if (x_mantissa >= d_mantissa) begin  
                     w_current <= {1'b0, 1'b0, (x_mantissa >> 2)};  //
                     exponent_bound <= x_exponent - d_exponent + EXP_BIAS;
                     res_exponent <=  x_exponent- d_exponent + EXP_BIAS; 
                 end else begin
-                    w_current <= {1'b0, 1'b0, (x_mantissa >> 1)}; 
+                    w_current <= {1'b0, 1'b0, (x_mantissa >> 1)};
+                    /*
+                    if (X_one) begin
+                        //w_current <= {1'b0, 1'b0, (x_mantissa >> 1)} -1; 
+                    end else begin 
+                        w_current <= {1'b0, 1'b0, (x_mantissa >> 1)};
+                    end*/
+                    
                     exponent_bound <= x_exponent-d_exponent + EXP_BIAS_LOW;
                     res_exponent <= x_exponent-d_exponent + EXP_BIAS_LOW;
                 end
