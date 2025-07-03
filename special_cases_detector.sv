@@ -19,10 +19,13 @@ module special_cases_detector #(
     parameter int E = 8,
     parameter int special_case = 7
 )(              
+    input logic clk,
+    input logic rst_l,
     input logic [E+M:0] X,
     input logic [E+M:0] Y,
     output logic [$clog2(special_case)-1:0] X_special_case,
-    output logic [$clog2(special_case)-1:0] Y_special_case
+    output logic [$clog2(special_case)-1:0] Y_special_case,
+    output logic X_one
 );
 
 /**
@@ -100,7 +103,7 @@ always_comb begin
     else if (X[E+M-2:0] == {E+M-1{1'b0}}) begin
         // Check MSB of exponent to distinguish between ±1 and ±0
         if (X[E+M-1]) begin
-            X_special_case = (X[E+M]) ? CASE_ONE_N : CASE_ONE_P;
+            //X_special_case = (X[E+M]) ? CASE_ONE_N : CASE_ONE_P;
         end
         else begin
             X_special_case = (X[E+M]) ? CASE_ZERO_N : CASE_ZERO_P;
