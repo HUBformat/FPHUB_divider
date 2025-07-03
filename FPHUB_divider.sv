@@ -98,7 +98,7 @@ module FPHUB_divider #(
         .X(x),
         .Y(d),
         .X_special_case(x_special_case),
-        .Y_special_case(d_special_case),
+        .Y_special_case(d_special_case)
     );
 
     special_result_for_divider #(E, M, special_case) special_result_inst (

@@ -31,24 +31,29 @@ localparam logic [E+M-1:0]
         ZERO = {{E+M{1'b0}}};            
 
 always_comb begin
+    if (X_special_case == CASE_ZERO_P && Y_special_case == CASE_ZERO_P) begin
+        special_result = {1'b1, INF};
+    end
+    else if (X_special_case == CASE_ZERO_N && Y_special_case == CASE_ZERO_N) begin
+        special_result = {1'b1, INF};
+    end
+    else if (X_special_case == CASE_INF_P && Y_special_case == CASE_INF_P) begin
+        special_result = {1'b1, INF};
+    end
+    // Si X = -∞ e Y = -∞, el resultado es -∞
+    else if (X_special_case == CASE_INF_N && Y_special_case == CASE_INF_N) begin
+        special_result = {1'b1, INF};
+    end
     // Casos con infinito
     // Si X = +∞ e Y = -∞, el resultado es NaN
-    if ((X_special_case == CASE_INF_P && Y_special_case == CASE_INF_N) || (X_special_case == CASE_INF_N && Y_special_case == CASE_INF_P)) begin
-        special_result = {RES_SIGN, INF};      // Sería NaN
-    end
-    // Si X = +∞ e Y = +∞, el resultado es +∞
-    else if (X_special_case == CASE_INF_P && Y_special_case == CASE_INF_P) begin
-        special_result = {RES_SIGN, INF};
-    end
-    // Si X = -∞ e Y = -∞, el resultado es +∞
-    else if (X_special_case == CASE_INF_N && Y_special_case == CASE_INF_N) begin
-        special_result = {RES_SIGN, INF};
-    end
-    // Si Y = +-∞, el resultado es 0 TODO: controlar signo
+    else if ((X_special_case == CASE_INF_P && Y_special_case == CASE_INF_N) || (X_special_case == CASE_INF_N && Y_special_case == CASE_INF_P)) begin
+        special_result = {RES_SIGN, INF}; 
+    end   
+    // Si Y = +-∞, el resultado es 0 
     else if (X_special_case == CASE_NONE && (Y_special_case == CASE_INF_P || Y_special_case == CASE_INF_N)) begin
         special_result = {RES_SIGN, ZERO};
     end
-    // Si Y = 0, el resultado es NaN (o ∞) TODO: controlar signo
+    // Si Y = 0, el resultado es NaN (o ∞)
    else if (Y_special_case == CASE_ZERO_N || Y_special_case == CASE_ZERO_P) begin
         special_result = {RES_SIGN, INF};
    end else if (X_special_case == CASE_ZERO_N || X_special_case == CASE_ZERO_P) begin
@@ -57,7 +62,5 @@ always_comb begin
     special_result = {RES_SIGN, X[M+E-1:0]};
    end
 
-   //TODO: division entre dos números iguales -> res = 1
-   //TODO: division entre 1 -> res = X
 end
 endmodule
