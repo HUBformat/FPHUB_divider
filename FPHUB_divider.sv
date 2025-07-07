@@ -91,6 +91,12 @@ module FPHUB_divider #(
     */
     logic special_case_detected;
     assign special_case_detected = start && (x_special_case | d_special_case); 
+
+    /* Variable: X_one
+        Flag indicating that the value of operand x is 1 or -1
+    
+    */
+    logic X_one;
     
     special_cases_detector #(E,M,special_case) special_cases_inst (
         .clk(clk),
@@ -98,7 +104,8 @@ module FPHUB_divider #(
         .X(x),
         .Y(d),
         .X_special_case(x_special_case),
-        .Y_special_case(d_special_case)
+        .Y_special_case(d_special_case),
+        .X_one(X_one)
     );
 
     special_result_for_divider #(E, M, special_case) special_result_inst (
@@ -140,7 +147,7 @@ module FPHUB_divider #(
     */
     logic[one_implicit_bit + M + ilsb_bit + extra_bit_x_gt_d:0] x_mantissa, d_mantissa;
     
-    assign x_mantissa =  {1'b1, x[M-1:0], 1'b1, 1'b0, 1'b0}; 
+    assign x_mantissa =  X_one ? {1'b1, x[M-1:0], 1'b0, 1'b0, 1'b0} : {1'b1, x[M-1:0], 1'b1, 1'b0, 1'b0}; // If X is 1 or -1, don't insert the HUB ILSB (leave it to zero)
     assign d_mantissa =  {1'b1, d[M-1:0], 1'b1, 1'b0, 1'b0};
 
     /* Variable: x_exponent, d_exponent
@@ -229,7 +236,9 @@ module FPHUB_divider #(
     logic [T:0] normalized;
     
 
-    // Combinational Logic
+    /* ---------------------------
+         Combinational Logic
+    ----------------------------*/
     always_comb begin   
 
         /*-------------------------
@@ -286,10 +295,10 @@ module FPHUB_divider #(
 
     end
     
+
     /* ---------------------------
          Sequential Logic
     ----------------------------*/
-
     always_ff @(posedge clk or negedge rst_l) begin
         if (!rst_l) begin
             // Reset all registers
@@ -315,42 +324,36 @@ module FPHUB_divider #(
                 finish <= 1'b1;
                 res <= {res_sign, {(T){1'b1}}};
                 exponent_bound <= '0;
-                computing <= 1'b0; 
-             
+                computing <= 1'b0;     
 
             // If a new operation starts and it IS a special case
-            end else if (/*start*/ /*&& !computing &&*/ special_case_detected) begin
+            end else if (special_case_detected) begin
                 res <= special_result;   
                 finish <= 1'b1;
                 computing <= 1'b0;
                 
             end
-                          // if a new operation begins and it is NOT a special case
-            else if (start &&  /*!computing &&*/ ~special_case_detected) begin
+
+            // if a new operation begins and it is NOT a special case
+            else if (start &&  ~special_case_detected) begin
                 
                 iter_count <= '0;
                 computing <= 1'b1;
                 res_sign <= x_sign ^ d_sign; 
                 finish <= 1'b0;
-                res <= '0;
-
-                // W_current: Positive sign + extra int bit + mantissa
+                res <= '0;         
                 
                 // In SRT algorithm, the first remainder is obtained dividing by 2 the original value
                 // BUT if x_mantissa is greater than d_mantissa, we must divide it again and update the exponent
                 if (x_mantissa >= d_mantissa) begin  
-                    w_current <= {1'b0, 1'b0, (x_mantissa >> 2)};  //
-                    exponent_bound <= x_exponent - d_exponent + EXP_BIAS;
+                    // W_current: Positive sign + extra int bit + mantissa
+                    w_current <= {1'b0, 1'b0, (x_mantissa >> 2)};  
+
+                    // Compute exponent and check if it is out of bounds
+                    exponent_bound <= x_exponent - d_exponent + EXP_BIAS; 
                     res_exponent <=  x_exponent- d_exponent + EXP_BIAS; 
                 end else begin
-                    w_current <= {1'b0, 1'b0, (x_mantissa >> 1)};
-                    /*
-                    if (X_one) begin
-                        //w_current <= {1'b0, 1'b0, (x_mantissa >> 1)} -1; 
-                    end else begin 
-                        w_current <= {1'b0, 1'b0, (x_mantissa >> 1)};
-                    end*/
-                    
+                    w_current <= {1'b0, 1'b0, (x_mantissa >> 1)};                    
                     exponent_bound <= x_exponent-d_exponent + EXP_BIAS_LOW;
                     res_exponent <= x_exponent-d_exponent + EXP_BIAS_LOW;
                 end
