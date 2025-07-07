@@ -1,1 +1,0 @@
-﻿NDFramePage.OnPageTitleLoaded("SystemVerilogModule:special_result_for_divider","special_result_for_divider");NDSummary.OnSummaryLoaded("SystemVerilogModule:special_result_for_divider",[["SystemVerilog","SystemVerilog"]],[["Modules","Module"]],[[43,0,0,"special_result_for_divider"]]);

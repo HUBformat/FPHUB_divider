@@ -1,1 +1,1 @@
-﻿NDSearch.OnPrefixDataLoaded("flo",["Variable","Section"],[["float_result",,[[,,,,0,"File:FPHUB_divider.sv:float_result"]]],["floating-point",,[[,"Fixed-point to floating-point conversion signals",,,1,"File:FPHUB_divider.sv:Fixed-point_to_floating-point_conversion_signals"]]]]);
+﻿NDSearch.OnPrefixDataLoaded("flo",["Section"],[["floating-point",,[[,"Fixed-point to floating-point conversion signals",,,0,"File:FPHUB_divider.sv:Fixed-point_to_floating-point_conversion_signals"]]]]);

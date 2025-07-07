@@ -1,1 +1,0 @@
-﻿NDSummary.OnToolTipsLoaded("SystemVerilogModule:special_result_for_divider",{43:"<div class=\"NDToolTip TModule LSystemVerilog\"><div class=\"TTSummary\">Generates the final result of the adder when at least one operand is a special case (e.g., ±infinity, ±zero). Handles cases like Inf + Inf or Inf - Inf.</div></div>"});

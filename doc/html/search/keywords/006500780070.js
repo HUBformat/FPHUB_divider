@@ -1,0 +1,1 @@
+﻿NDSearch.OnPrefixDataLoaded("exp",["Variable"],[["exponent_bound",,[[,,,,0,"File:FPHUB_divider.sv:exponent_bound"]]]]);
