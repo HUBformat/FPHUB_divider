@@ -95,6 +95,7 @@ The same logic is reused for operand Y without repeating the description.
 */
 always_comb begin
     X_special_case = 0;
+    X_one = 0;
 
     if (X[E+M-1:0] == {E+M{1'b1}}) begin
         // Infinity case (exponent and mantissa all 1s)
@@ -104,6 +105,7 @@ always_comb begin
         // Check MSB of exponent to distinguish between ±1 and ±0
         if (X[E+M-1]) begin
             //X_special_case = (X[E+M]) ? CASE_ONE_N : CASE_ONE_P;
+            X_one = 1'b1;
         end
         else begin
             X_special_case = (X[E+M]) ? CASE_ZERO_N : CASE_ZERO_P;
