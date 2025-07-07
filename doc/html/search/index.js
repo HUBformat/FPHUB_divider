@@ -1,1 +1,1 @@
-﻿NDSearch.OnPrefixIndexLoaded(["abs","cas","con","d_e","d_m","d_s","dec","det","div","fix","flo","fph","gen","han","ide","int","ite","lea","mai","mod","neg","nor","of","pos","q","quo","res","sig","spe","to","w_c","w_n","x_e","x_m","x_s"]);
+﻿NDSearch.OnPrefixIndexLoaded(["cas","con","d_e","d_m","d_s","dec","det","div","exp","fix","flo","fph","han","ide","int","ite","lea","mai","mod","neg","nor","of","pos","q","quo","res","sig","spe","to","w_c","w_n","x_e","x_m","x_o","x_s"]);
