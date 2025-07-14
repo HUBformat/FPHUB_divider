@@ -14,7 +14,7 @@
      X_special_case - Encoded identifier of the special case for operand X (0 = not special).
      Y_special_case - Encoded identifier of the special case for operand Y (0 = not special).
  */
-module special_cases_detector #(
+module special_cases_detector_div #(
     parameter int M = 23,
     parameter int E = 8,
     parameter int special_case = 7
