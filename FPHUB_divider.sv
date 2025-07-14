@@ -98,7 +98,7 @@ module FPHUB_divider #(
     */
     logic X_one;
     
-    special_cases_detector #(E,M,special_case) special_cases_inst (
+    special_cases_detector_div #(E,M,special_case) special_cases_inst (
         .clk(clk),
         .rst_l(rst_l),
         .X(x),
