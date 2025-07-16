@@ -1,0 +1,99 @@
+﻿<link rel="stylesheet" href="../styles/main.css" type="text/css">
+<script>
+(function(){
+  var parentHtml = window.parent.document.documentElement;
+  var myHtml = document.documentElement;
+
+  function syncTheme(){
+    // Get parent classes and perform replacement
+    var classes = parentHtml.className.replace(
+      /\bNDFramePage\b/g, 
+      'NDContentPage'
+    );
+    
+    // Apply modified class list
+    myHtml.className = classes;
+  }
+
+  syncTheme();
+
+  new MutationObserver(syncTheme)
+    .observe(parentHtml, { attributes: true, attributeFilter: ['class'] });
+})();
+</script>
+<h1 class="CTitle" id="floating-point-divider-hub-format">Floating-Point
+Divider (HUB Format)</h1>
+<h2 class="CHeading" id="overview">Overview</h2>
+<p>This module implements a custom <strong>SRT radix-2 floating-point
+divider</strong> using a simplified, educational format referred to as
+<strong>HUB</strong>. The design supports normalized numbers only, and
+handles key IEEE 754-style special cases like ±zero and ±infinity. The
+goal is to offer a modular, understandable architecture for
+floating-point division in digital systems.</p>
+<p>The core component (<code>FPHUB_divider</code>) takes two inputs in
+HUB format and returns a correctly computed division, managing
+alignment, normalization, and special cases through a series of
+coordinated submodules.</p>
+<hr />
+<h2 class="CHeading" id="hub-format">HUB Format</h2>
+<p>Each operand is composed of:</p>
+<ul>
+<li>1-bit <strong>sign</strong>.</li>
+<li>E-bit <strong>exponent</strong>.</li>
+<li>M-bit <strong>mantissa</strong>, where the leading 1 is implicit
+(normalized form).</li>
+</ul>
+<p>There are <strong>no subnormals</strong>. Even when the exponent is
+zero, the implicit one is still present in the mantissa.</p>
+<hr />
+<h2 class="CHeading" id="key-features">Key Features</h2>
+<ul>
+<li><strong>Modular architecture</strong>: The design is split into
+dedicated, self-contained submodules.</li>
+<li><strong>Special case support </strong>: Recognizes and handles
+special cases like ±0 and ±∞.</li>
+</ul>
+<hr />
+<h2 class="CHeading" id="submodules">Submodules</h2>
+<ul>
+<li><a
+href="#special_cases_detector_div"><code>special_cases_detector_div</code></a>:
+Classifies each operand (e.g., normal, zero, infinity, one).</li>
+<li><a
+href="#special_result_for_adder"><code>special_result_for_divider</code></a>:
+Produces predefined result when special cases are present.</li>
+</ul>
+<hr />
+<h2 class="CHeading" id="result-composition">Result Composition</h2>
+<p>After computations, the final result is assembled from: - Sign bit
+(<code>res_sign</code>) - Normalized exponent
+(<code>res_exponent</code>) - Most significant bits of the mantissa
+(<code>res_mantissa</code>)</p>
+<p>the output is a valid HUB-formatted floating-point number.</p>
+<hr />
+<h2 class="CHeading" id="usage">Usage</h2>
+<p>To integrate the divider into your own project:</p>
+<ol type="1">
+<li><strong>Instantiate</strong> the top module
+<code>FPHUB_divider</code>, or connect its submodules individually for
+advanced control.</li>
+<li><strong>Provide inputs</strong> <code>X</code> and <code>D</code>
+using the custom HUB format:
+<code>{sign, exponent, mantissa}</code>.</li>
+<li><strong>Monitor</strong> the <code>finish</code> output to detect
+when the operation has completed.</li>
+<li><strong>Read</strong> the output <code>res</code>, which will
+contain the final result in HUB format.</li>
+</ol>
+<h3 class="CHeading" id="parameterization">Parameterization</h3>
+<p>The divider is <strong>fully parameterizable</strong>: - You can
+adjust the number of exponent bits (<code>E</code>) and mantissa bits
+(<code>M</code>) via parameters. - By default, the module uses <strong>E
+= 8</strong> and <strong>M = 23</strong>, which corresponds to a 32-bit
+floating-point format (1 + 8 + 23 bits). - This allows easy scaling of
+precision for custom applications, embedded systems, or educational
+experiments.</p>
+<hr />
+<h2 class="CHeading" id="license">License</h2>
+<p>This project is intended for educational and research purposes. Feel
+free to adapt it to your own system design work or coursework.</p>

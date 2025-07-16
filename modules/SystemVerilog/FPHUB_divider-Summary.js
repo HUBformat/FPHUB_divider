@@ -1,0 +1,1 @@
+﻿NDFramePage.OnPageTitleLoaded("SystemVerilogModule:FPHUB_divider","FPHUB_divider");NDSummary.OnSummaryLoaded("SystemVerilogModule:FPHUB_divider",[["SystemVerilog","SystemVerilog"]],[["Modules","Module"]],[[16,0,0,"FPHUB_divider"]]);

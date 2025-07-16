@@ -1,0 +1,1 @@
+﻿NDSearch.OnPrefixDataLoaded("fix",["Section"],[["Fixed-point",,[[,"Fixed-point to floating-point conversion signals",,,0,"File:FPHUB_divider.sv:Fixed-point_to_floating-point_conversion_signals"]]]]);

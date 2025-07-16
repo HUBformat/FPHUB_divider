@@ -1,0 +1,1 @@
+﻿NDSearch.OnPrefixDataLoaded("dec",["Section"],[["declaration",,[[,"Intermediate Signals declaration",,,0,"File:FPHUB_divider.sv:Intermediate_Signals_declaration"]]]]);
