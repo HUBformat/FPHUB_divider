@@ -1,1 +1,1 @@
-﻿NDFramePage.OnPageTitleLoaded("SystemVerilogModule:special_cases_detector","special_cases_detector");NDSummary.OnSummaryLoaded("SystemVerilogModule:special_cases_detector",[["SystemVerilog","SystemVerilog"]],[["Modules","Module"]],[[1,0,0,"special_cases_detector"]]);
+﻿NDFramePage.OnPageTitleLoaded("SystemVerilogModule:special_cases_detector","special_cases_detector");NDSummary.OnSummaryLoaded("SystemVerilogModule:special_cases_detector",[["SystemVerilog","SystemVerilog"]],[["Modules","Module"]],[[49,0,0,"special_cases_detector"]]);
