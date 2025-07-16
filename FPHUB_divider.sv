@@ -66,7 +66,7 @@ module FPHUB_divider #(
     Modules:
         The modules used are:
 
-            - <special_cases_detector>: Detects ones, zeros, and infinities in the operands.
+            - <special_cases_detector_div>: Detects ones, zeros, and infinities in the operands.
 
             - <special_result_for_divider>: Computes the output for those special inputs for division.
     */
@@ -98,7 +98,7 @@ module FPHUB_divider #(
     */
     logic X_one;
     
-    special_cases_detector #(E,M,special_case) special_cases_inst (
+    special_cases_detector_div #(E,M,special_case) special_cases_inst (
         .clk(clk),
         .rst_l(rst_l),
         .X(x),
