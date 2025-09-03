@@ -30,6 +30,7 @@
       res - Result of the floating-point division.
       finish - Indicates the operation is complete.
       computing - Indicates the operation is in progress.
+      special_case_detected - Flag indicating if a special case was detected.
  */
 module FPHUB_divider #(
     parameter int   M = 23,
@@ -53,7 +54,8 @@ module FPHUB_divider #(
     input  logic [T:0]      d,          
     output logic [T:0]      res,      
     output logic            finish,       
-    output logic            computing
+    output logic            computing,
+    output logic            special_case_detected
 );
 
     /* Section: Special Case Handling
@@ -89,7 +91,6 @@ module FPHUB_divider #(
     /* Variable: special_case_detected
         Flag indicating whether a special case has been detected.
     */
-    logic special_case_detected;
     assign special_case_detected = start && (x_special_case | d_special_case); 
 
     /* Variable: X_one
