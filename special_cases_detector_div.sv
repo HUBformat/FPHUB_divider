@@ -1,4 +1,4 @@
-/* Module: special_cases_detector
+/* Module: special_cases_detector_div
 
  Summary:
      Identifies special floating-point values such as ±infinity, ±zero, and ±one in operands X and Y.
@@ -13,6 +13,7 @@
      Y - Second operand (in custom floating-point format).
      X_special_case - Encoded identifier of the special case for operand X (0 = not special).
      Y_special_case - Encoded identifier of the special case for operand Y (0 = not special).
+     X_one - Indicates if operand X is ±one.
  */
 module special_cases_detector_div #(
     parameter int M = 23,
@@ -35,43 +36,43 @@ module special_cases_detector_div #(
  */
 
  /**
- * Variable: CASE_NONE
+ * Constant: CASE_NONE
  *     No special case.
  */
 localparam logic [$clog2(special_case):0] CASE_NONE = 0;
 
 /**
- * Variable: CASE_INF_P
+ * Constant: CASE_INF_P
  *     Positive infinity.
  */
 localparam logic [$clog2(special_case):0] CASE_INF_P = 1;
 
 /**
- * Variable: CASE_INF_N
+ * Constant: CASE_INF_N
  *     Negative infinity.
  */
 localparam logic [$clog2(special_case):0] CASE_INF_N = 2;
 
 /**
- * Variable: CASE_ZERO_P
+ * Constant: CASE_ZERO_P
  *     Positive zero.
  */
 localparam logic [$clog2(special_case):0] CASE_ZERO_P = 3;
 
 /**
- * Variable: CASE_ZERO_N
+ * Constant: CASE_ZERO_N
  *     Negative zero.
  */
 localparam logic [$clog2(special_case):0] CASE_ZERO_N = 4;
 
 /**
- * Variable: CASE_ONE_P
+ * Constant: CASE_ONE_P
  *     Positive one.
  */
 localparam logic [$clog2(special_case):0] CASE_ONE_P = 5;
 
 /**
- * Variable: CASE_ONE_N
+ * Constant: CASE_ONE_N
  *     Negative one.
  */
 localparam logic [$clog2(special_case):0] CASE_ONE_N = 6;
@@ -104,7 +105,7 @@ always_comb begin
     else if (X[E+M-2:0] == {E+M-1{1'b0}}) begin
         // Check MSB of exponent to distinguish between ±1 and ±0
         if (X[E+M-1]) begin
-            //X_special_case = (X[E+M]) ? CASE_ONE_N : CASE_ONE_P;
+            // X is ±1
             X_one = 1'b1;
         end
         else begin
@@ -128,5 +129,6 @@ always_comb begin
         end
     end
 end
+
 
 endmodule

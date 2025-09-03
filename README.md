@@ -23,18 +23,18 @@ There are **no subnormals**. Even when the exponent is zero, the implicit one is
 ## Key Features
 
 - **Modular architecture**: The design is split into dedicated, self-contained submodules.
-- **Special case support (WIP)**: Recognizes and handles ±0 and ±∞.
+- **Special case support **: Recognizes and handles special cases like ±0 and ±∞.
 
 ---
 
 ## Submodules
 
-- [`special_cases_detector`](#special_cases_detector): Classifies each operand (e.g., normal, zero, infinity, one).
+- [`special_cases_detector_div`](#special_cases_detector_div): Classifies each operand (e.g., normal, zero, infinity, one).
 - [`special_result_for_divider`](#special_result_for_adder): Produces predefined result when special cases are present.
 
 ---
 
-## Result Composition (WIP)
+## Result Composition
 
 After computations, the final result is assembled from:
 - Sign bit (`res_sign`)
@@ -54,9 +54,9 @@ To integrate the divider into your own project:
 3. **Monitor** the `finish` output to detect when the operation has completed.
 4. **Read** the output `res`, which will contain the final result in HUB format.
 
-### Parameterization (WIP)
+### Parameterization
 
-The divider is **fully parameterizable (WIP)**:
+The divider is **fully parameterizable**:
 - You can adjust the number of exponent bits (`E`) and mantissa bits (`M`) via parameters.
 - By default, the module uses **E = 8** and **M = 23**, which corresponds to a 32-bit floating-point format (1 + 8 + 23 bits).
 - This allows easy scaling of precision for custom applications, embedded systems, or educational experiments.

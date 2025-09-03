@@ -1,0 +1,49 @@
+name: Generate Documentation
+
+on:
+  push:
+    branches: [ main ]  # Adjust branch name as needed
+  workflow_dispatch:    # Allows manual triggering
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Pandoc
+        run: sudo apt-get install -y pandoc
+
+      - name: Install Mono
+        run: sudo apt-get install -y mono-complete
+
+      - name: Create output directory
+        run: mkdir -p doc/html
+
+      - name: Run Pandoc
+        run: |
+          pandoc --lua-filter=${{ github.workspace }}/doc/nd-config/converter.lua \
+          --template=${{ github.workspace }}/doc/nd-config/nd-fragment.template \
+          -f markdown -t html5 \
+          -o ${{ github.workspace }}/doc/nd-config/README.html \
+          ${{ github.workspace }}/README.md
+
+      - name: Download NaturalDocs
+        run: |
+          wget https://www.naturaldocs.org/download/natural_docs/2.3.1/Natural_Docs_2.3.1.zip -O /tmp/ND.zip
+          unzip /tmp/ND.zip -d /tmp
+
+      - name: Run NaturalDocs
+        run: mono /tmp/Natural\ Docs/NaturalDocs.exe ${{ github.workspace }}/doc/nd-config
+
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: doc/html  # Adjust this if NaturalDocs output directory is different
+          branch: gh-pages
+          commit-message: "Deploy Documentation for Commit ${{ github.sha }}"
+
