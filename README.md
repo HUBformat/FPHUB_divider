@@ -23,7 +23,7 @@ There are **no subnormals**. Even when the exponent is zero, the implicit one is
 ## Key Features
 
 - **Modular architecture**: The design is split into dedicated, self-contained submodules.
-- **Special case support **: Recognizes and handles special cases like ±0 and ±∞.
+- **Special case support**: Recognizes and handles special cases like ±0 and ±∞.
 
 ---
 
