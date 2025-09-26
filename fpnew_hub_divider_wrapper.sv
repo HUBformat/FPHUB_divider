@@ -29,7 +29,8 @@ module fpnew_hub_divider_wrapper #(
 
   FPHUB_divider #(
     .M(M),
-    .E(E)
+    .E(E),
+    .T(E+M)
   ) i_hub_divider (
     .clk(clk_i),        
     .rst_l(rst_ni),     
