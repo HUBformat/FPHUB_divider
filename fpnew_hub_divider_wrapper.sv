@@ -18,7 +18,8 @@ module fpnew_hub_divider_wrapper #(
   output logic [WIDTH-1:0] result_o,
   output fpnew_pkg::status_t status_o,
   output logic out_valid_o,
-  input  logic out_ready_i
+  input  logic out_ready_i,
+  output logic busy_o
 );
 
   // Señales internas para tu módulo divider
@@ -63,6 +64,9 @@ module fpnew_hub_divider_wrapper #(
 
   // El resultado de la división se asigna directamente a la salida
   assign result_o = hub_res_output;
+
+  // Usamos la señal computing del divisor como la señal busy_o del fpnew
+  assign busy_o = hub_computing_signal;
 
   // Lógica de flags de estado de FPnew (status_t)
 //  // Basado en el formato de HUB

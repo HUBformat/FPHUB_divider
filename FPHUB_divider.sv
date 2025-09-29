@@ -166,7 +166,11 @@ module FPHUB_divider #(
 
         In 32-bit format, this translates to:  Sign bit + Extra int bit + Implicit 1 bit from IEEE-754 + 24 bits from HUB mantissa + Extra fractional bit -> 28 bits
     */
+
     logic signed [M + extra_bits_mantissa:0] w_current, w_next, w_current_2; 
+    
+    logic [M + extra_bits_mantissa:0] shifted_w_current;
+    assign shifted_w_current = w_current << 1;
     
     assign w_current_2 = {w_current[M + extra_bits_mantissa], shifted_w_current[M + extra_bits_mantissa-1:0]}; 
 
@@ -184,10 +188,6 @@ module FPHUB_divider #(
         Signal containing the positions in which que quotient <q> has a -1
     */
     logic [N:0] neg;
-
-    logic [M + extra_bits_mantissa:0] shifted_w_current;
-    assign shifted_w_current = w_current << 1;
-
 
     /* Section: Fixed-point to floating-point conversion signals
         Once the value has been computed, it must be formatted back to floating-point
