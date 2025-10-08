@@ -123,7 +123,9 @@ always_comb begin
    end else if (X_special_case == CASE_ZERO_N || X_special_case == CASE_ZERO_P) begin
         special_result = {RES_SIGN, ZERO};
    end else if (Y_special_case == CASE_ONE_N || Y_special_case == CASE_ONE_P) begin
-    special_result = {RES_SIGN, X[M+E-1:0]};
+        special_result = {RES_SIGN, X[M+E-1:0]};
+   end else if ((X_special_case == CASE_INF_P || X_special_case == CASE_INF_N)  && Y_special_case == CASE_NONE) begin
+        special_result = {RES_SIGN, INF};
    end
 
 end
