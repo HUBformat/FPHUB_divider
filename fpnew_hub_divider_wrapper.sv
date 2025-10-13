@@ -30,7 +30,8 @@ module fpnew_hub_divider_wrapper #(
 
   FPHUB_divider #(
     .M(M),
-    .E(E)
+    .E(E),
+    .N(32)
   ) i_hub_divider (
     .clk(clk_i),        
     .rst_l(rst_ni),     
@@ -52,12 +53,14 @@ module fpnew_hub_divider_wrapper #(
   // Lógica de Handshake
   // -------------------------------------------
 
+
+  // in_ready_o está activo cuando la FPU está lista para recibir una nueva operación de división
+  assign in_ready_o = ~hub_computing_signal;
+  
   // Iniciación de la operación válida
   // Pulso de inicio: ocurre en el ciclo donde la entrada es válida Y el módulo está listo
   assign hub_start_signal = op_i == fpnew_pkg::DIV ? in_valid_i && in_ready_o : 1'b0;
 
-  // in_ready_o está activo cuando la FPU está lista para recibir una nueva operación de división
-  assign in_ready_o = ~hub_computing_signal;
   // out_valid_o se activa cuando la entrada es válida y el op_i es de división
   assign out_valid_o = hub_finish_signal;
 
