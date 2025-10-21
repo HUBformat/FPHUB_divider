@@ -35,7 +35,7 @@
 module FPHUB_divider #(
     parameter int   M = 23,
     parameter int   E = 8,
-    parameter int   N = 31, 
+    parameter int   N = 25, 
     localparam int  T = M+E,
     localparam int  EXP_BIAS = 1 << (E - 1),
     localparam int  EXP_BIAS_LOW = EXP_BIAS -1,
