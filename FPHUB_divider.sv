@@ -240,18 +240,7 @@ module FPHUB_divider #(
     /* ---------------------------
          Combinational Logic
     ----------------------------*/
-    always_comb begin   
-
-        /*-------------------------
-              Initialization
-        -------------------------*/
-
-        // If a new operation starts and it is NOT a special case
-        if (start && !computing) begin
-            posiv = '0;
-            neg = '0;
-        end
-            
+    always_comb begin               
             
         /*--------------------------------
                Termination Phase of SRT
@@ -291,7 +280,12 @@ module FPHUB_divider #(
             normalized = restored_quotient << leading_zeros;
                     
             // Extract mantissa, drop the implicit 1
-            res_mantissa = normalized[T-1:E];           
+            res_mantissa = normalized[T-1:E];        
+
+        end else begin
+            posiv = '0;
+            neg = '0;
+            res_mantissa = '0;
         end
 
     end
