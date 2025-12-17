@@ -26,110 +26,110 @@ module special_result_for_divider #(
     input logic [$clog2(special_case)-1:0] X_special_case,      
     input logic [$clog2(special_case)-1:0] Y_special_case,   
     output logic [E+M:0] special_result                        
-    );
-
-/**
-    Variable: RES_SIGN
-        Sign bit of the result.
-*/
-logic RES_SIGN;
-assign RES_SIGN = X[M+E] ^ Y[M+E];
+);
 
 /*
     Section: Special case identifiers
     Constant encoding of recognized special cases.
 */
-
- /**
- * Constant: CASE_NONE
- *     No special case.
- */
-localparam logic [$clog2(special_case):0] CASE_NONE = 0;
-
-/**
- * Constant: CASE_INF_P
- *     Positive infinity.
- */
-localparam logic [$clog2(special_case):0] CASE_INF_P = 1;
-
-/**
- * Constant: CASE_INF_N
- *     Negative infinity.
- */
-localparam logic [$clog2(special_case):0] CASE_INF_N = 2;
-
-/**
- * Constant: CASE_ZERO_P
- *     Positive zero.
- */
+localparam logic [$clog2(special_case):0] CASE_NONE   = 0;
+localparam logic [$clog2(special_case):0] CASE_INF_P  = 1;
+localparam logic [$clog2(special_case):0] CASE_INF_N  = 2;
 localparam logic [$clog2(special_case):0] CASE_ZERO_P = 3;
-
-/**
- * Constant: CASE_ZERO_N
- *     Negative zero.
- */
 localparam logic [$clog2(special_case):0] CASE_ZERO_N = 4;
-
-/**
- * Constant: CASE_ONE_P
- *     Positive one.
- */
-localparam logic [$clog2(special_case):0] CASE_ONE_P = 5;
-
-/**
- * Constant: CASE_ONE_N
- *     Negative one.
- */
-localparam logic [$clog2(special_case):0] CASE_ONE_N = 6;
+localparam logic [$clog2(special_case):0] CASE_ONE_P  = 5;
+localparam logic [$clog2(special_case):0] CASE_ONE_N  = 6;
 
 /*
-    Constant: INF
-        Constant representing infinity.
+    Section: Result constants
 */
-localparam logic [E+M-1:0] INF = {{E{1'b1}}, {M{1'b1}}};    
+localparam logic [E+M-1:0] INF  = {{E{1'b1}}, {M{1'b1}}}; 
+localparam logic [E+M-1:0] ZERO = {(E+M){1'b0}};
 
 /*
-    Constant: ZERO
-        Constant representing zero.
+    Section: Intermediate signals
 */
-localparam logic ZERO = {{E+M{1'b0}}};            
+logic result_sign;
+logic is_x_inf, is_x_zero, is_x_one, is_x_normal;
+logic is_y_inf, is_y_zero, is_y_one, is_y_normal;
+logic is_inf_div_inf, is_zero_div_zero;
+logic is_norm_div_inf, is_zero_div_norm, is_norm_div_zero;
+logic is_inf_div_norm, is_norm_div_one;
+
+// Operand classification
+assign is_x_inf    = (X_special_case == CASE_INF_P) || (X_special_case == CASE_INF_N);
+assign is_x_zero   = (X_special_case == CASE_ZERO_P) || (X_special_case == CASE_ZERO_N);
+assign is_x_one    = (X_special_case == CASE_ONE_P) || (X_special_case == CASE_ONE_N);
+assign is_x_normal = (X_special_case == CASE_NONE);
+
+assign is_y_inf    = (Y_special_case == CASE_INF_P) || (Y_special_case == CASE_INF_N);
+assign is_y_zero   = (Y_special_case == CASE_ZERO_P) || (Y_special_case == CASE_ZERO_N);
+assign is_y_one    = (Y_special_case == CASE_ONE_P) || (Y_special_case == CASE_ONE_N);
+assign is_y_normal = (Y_special_case == CASE_NONE);
+
+// Special case combinations
+assign is_inf_div_inf   = is_x_inf && is_y_inf;
+assign is_zero_div_zero = is_x_zero && is_y_zero;
+assign is_norm_div_inf  = is_x_normal && is_y_inf;
+assign is_zero_div_norm = is_x_zero && (is_y_normal || is_y_one);
+assign is_norm_div_zero = (is_x_normal || is_x_one) && is_y_zero;
+assign is_inf_div_norm  = is_x_inf && (is_y_normal || is_y_one);
+assign is_norm_div_one  = (is_x_normal || is_x_inf || is_x_zero) && is_y_one;
+
+// Sign of the result
+assign result_sign = X[M+E] ^ Y[M+E];
+
+/*
+    Section: Special case logic
+    
+    Division special cases:
+    - Inf / Inf = NaN
+    - 0 / 0 = NaN
+    - Normal / Inf = 0 
+    - 0 / Normal = 0 
+    - Normal / 0 = Inf 
+    - Inf / Normal = Inf 
+    - Normal / 1 = Normal
+    - Inf / 0 = Inf
+    - 0 / Inf = 0
+*/
 
 always_comb begin
-    if (X_special_case == CASE_ZERO_P && Y_special_case == CASE_ZERO_P) begin
+    // Default to NaN
+    special_result = {1'b0, INF};
+    
+    if (is_inf_div_inf || is_zero_div_zero) begin
+        // Inf/Inf or 0/0 = NaN 
         special_result = {1'b1, INF};
     end
-    else if (X_special_case == CASE_ZERO_N && Y_special_case == CASE_ZERO_N) begin
-        special_result = {1'b1, INF};
+    else if (is_norm_div_zero || (is_inf_div_norm)) begin
+        // Normal/0 or Inf/Normal = signed Inf
+        special_result = {result_sign, INF};
     end
-    else if (X_special_case == CASE_INF_P && Y_special_case == CASE_INF_P) begin
-        special_result = {1'b1, INF};
+    else if (is_norm_div_inf || is_zero_div_norm) begin
+        // Normal/Inf or 0/Normal = signed 0
+        special_result = {result_sign, ZERO};
     end
-    // if X = -∞ and Y = -∞, result is -∞
-    else if (X_special_case == CASE_INF_N && Y_special_case == CASE_INF_N) begin
-        special_result = {1'b1, INF};
+    else if (is_norm_div_one) begin
+        // Normal/1 = Normal
+        special_result = {result_sign, X[M+E-1:0]};
     end
-    // Cases with infinity
-    // if X = +∞ and Y = -∞, result is NaN
-    else if ((X_special_case == CASE_INF_P && Y_special_case == CASE_INF_N) || (X_special_case == CASE_INF_N && Y_special_case == CASE_INF_P)) begin
-        special_result = {RES_SIGN, INF}; 
-    end   
-    // if Y = +-∞, result is 0 
-    else if (X_special_case == CASE_NONE && (Y_special_case == CASE_INF_P || Y_special_case == CASE_INF_N)) begin
-        special_result = {RES_SIGN, ZERO};
+    else if (is_x_zero && is_y_inf) begin
+        // 0/Inf = signed 0
+        special_result = {result_sign, ZERO};
     end
-    // if Y = 0, result is NaN
-   else if (Y_special_case == CASE_ZERO_N || Y_special_case == CASE_ZERO_P) begin
-        special_result = {RES_SIGN, INF};
-   end else if (X_special_case == CASE_ZERO_N || X_special_case == CASE_ZERO_P) begin
-        special_result = {RES_SIGN, ZERO};
-   end else if (Y_special_case == CASE_ONE_N || Y_special_case == CASE_ONE_P) begin
-        special_result = {RES_SIGN, X[M+E-1:0]};
-   end else if ((X_special_case == CASE_INF_P || X_special_case == CASE_INF_N)  && Y_special_case == CASE_NONE)begin
-        special_result = {RES_SIGN, INF};
-
-   end else begin
-        special_result = '0;
-   end
-
+    else if (is_x_inf && is_y_zero) begin
+        // Inf/0 = signed Inf
+        special_result = {result_sign, INF};
+    end
+    else if (is_x_zero && is_y_zero) begin
+        // 0/0 = NaN
+        special_result = {1'b0, INF};
+    end
+    else begin
+        // No special case detected
+        special_result = {1'b0, ZERO};
+    end
 end
+
 endmodule

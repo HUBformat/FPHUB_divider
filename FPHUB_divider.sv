@@ -1,6 +1,6 @@
 /*Title: Main module FPHUB Divider
 
-  Floating-point SRT divider for HUB format.
+  Floating-point SRT divider for HUB format, constant latency version.
 */
 
 /* Module: FPHUB_divider
@@ -35,7 +35,7 @@
 module FPHUB_divider #(
     parameter int   M = 23,
     parameter int   E = 8,
-    parameter int   N = 25, 
+    localparam int  N = M+2, 
     localparam int  T = M+E,
     localparam int  EXP_BIAS = 1 << (E - 1),
     localparam int  EXP_BIAS_LOW = EXP_BIAS -1,
@@ -235,6 +235,16 @@ module FPHUB_divider #(
         Normalized value of the restored quotient, used to obtain the <res_mantissa>
     */
     logic [T:0] normalized;
+
+    /* Variable: special_case_saved
+        Flag indicating if a special case result has been saved for later use.
+    */
+    logic special_case_saved;
+
+    /* Variable: special_result_saved
+        Stores the special case result when detected for later use.
+    */
+    logic [T:0] special_result_saved;
     
 
     /* ---------------------------
@@ -246,7 +256,7 @@ module FPHUB_divider #(
                Termination Phase of SRT
         ---------------------------------*/
 
-        if(iter_count == N) begin
+        if(iter_count == N && !special_case_saved) begin
             
             // Obtain the positions in which quotient q has a 1 or a -1
             for (int i = 1; i <= N; i++) begin
@@ -306,82 +316,109 @@ module FPHUB_divider #(
             res_exponent <= '0;
             exponent_bound <= '0;
             res_sign <= 1'b0;
+            special_case_saved <= 1'b0;
+            special_result_saved <= '0;
         end
         else begin
-
-            // If the result exponent is out of bounds
-            if (exponent_bound < $signed({{1{1'b0}}, E'(0)})) begin
-                finish <= 1'b1;
-                res <= {res_sign, (T)'(0)};
-                exponent_bound <= '0; // to avoid repeated execution
-                computing <= 1'b0; 
-            end else if (exponent_bound > $signed({1'b0, {(E){1'b1}}})) begin
-                finish <= 1'b1;
-                res <= {res_sign, {(T){1'b1}}};
-                exponent_bound <= '0;
-                computing <= 1'b0;     
+             // If the result exponent is out of bounds
+           if (exponent_bound < $signed({{1{1'b0}}, E'(0)})) begin
+                        //finish <= 1'b1;
+                        special_result_saved <= {res_sign, (T)'(0)};
+                        special_case_saved <= 1'b1;
+                        exponent_bound <= '0; // to avoid repeated execution
+                        //computing <= 1'b0; 
+                    end else if (exponent_bound > $signed({1'b0, {(E){1'b1}}})) begin
+                        //finish <= 1'b1;
+                        special_result_saved <= {res_sign, {(T){1'b1}}};
+                        special_case_saved <= 1'b1;
+                        exponent_bound <= '0;
+                        //computing <= 1'b0;  
+                    end 
 
             // If a new operation starts and it IS a special case
+            /*
             end else if (special_case_detected) begin
                 res <= special_result;   
                 finish <= 1'b1;
                 computing <= 1'b0;
                 
             end
+            */
 
-            // if a new operation begins and it is NOT a special case
-            else if (start &&  ~special_case_detected) begin
-                
+            // if a new operation begins
+            if (start /*&&  ~special_case_detected*/) begin
+
                 iter_count <= '0;
-                computing <= 1'b1;
-                res_sign <= x_sign ^ d_sign; 
+                computing <= 1'b1;           
                 finish <= 1'b0;
-                res <= '0;         
-                
-                // In SRT algorithm, the first remainder is obtained dividing by 2 the original value
-                // BUT if x_mantissa is greater than d_mantissa, we must divide it again and update the exponent
-                if (x_mantissa >= d_mantissa) begin  
-                    // W_current: Positive sign + extra int bit + mantissa
-                    w_current <= {1'b0, 1'b0, (x_mantissa >> 2)};  
+                res <= '0; 
 
-                    // Compute exponent and check if it is out of bounds
-                    exponent_bound <= x_exponent - d_exponent + EXP_BIAS; 
-                    res_exponent <=  x_exponent- d_exponent + EXP_BIAS; 
+                if (special_case_detected) begin
+                    special_case_saved <= 1'b1;
+                    special_result_saved <= special_result;
+
                 end else begin
-                    w_current <= {1'b0, 1'b0, (x_mantissa >> 1)};                    
-                    exponent_bound <= x_exponent-d_exponent + EXP_BIAS_LOW;
-                    res_exponent <= x_exponent-d_exponent + EXP_BIAS_LOW;
+                    special_case_saved <= 1'b0;
+                    special_result_saved <= '0;
+
+                    res_sign <= x_sign ^ d_sign;       
+                    
+                    // In SRT algorithm, the first remainder is obtained dividing by 2 the original value
+                    // BUT if x_mantissa is greater than d_mantissa, we must divide it again and update the exponent
+                    if (x_mantissa >= d_mantissa) begin  
+                        // W_current: Positive sign + extra int bit + mantissa
+                        w_current <= {1'b0, 1'b0, (x_mantissa >> 2)};  
+
+                        // Compute exponent and check if it is out of bounds
+                        exponent_bound <= x_exponent - d_exponent + EXP_BIAS; 
+                        res_exponent <=  x_exponent- d_exponent + EXP_BIAS; 
+                    end else begin
+                        w_current <= {1'b0, 1'b0, (x_mantissa >> 1)};                    
+                        exponent_bound <= x_exponent-d_exponent + EXP_BIAS_LOW;
+                        res_exponent <= x_exponent-d_exponent + EXP_BIAS_LOW;
+                    end
+                    
+                    
+                    // Positive sign + extra int bit + mantissa
+                    d_signed <= {1'b0, 1'b0, d_mantissa}; 
                 end
                 
                 
-                // Positive sign + extra int bit + mantissa
-                d_signed <= {1'b0, 1'b0, d_mantissa}; 
 
 
            // If there is an operation in progress
             end else if (computing && iter_count < N) begin
                 iter_count <= iter_count +1;
 
-                // if current w*2 is greater or equal to 0.5
-                if((!w_current_2[M+extra_bits_mantissa]) && w_current_2[M + extra_bits_mantissa-1:M+extra_bits_mantissa-2] >= 2'b01) begin  
-                    q[iter_count+1] <= 1;                          
-                    w_current <= w_current_2 - d_signed;         
+                if (!special_case_saved) begin
+                    // if current w*2 is greater or equal to 0.5
+                    if((!w_current_2[M+extra_bits_mantissa]) && w_current_2[M + extra_bits_mantissa-1:M+extra_bits_mantissa-2] >= 2'b01) begin  
+                        q[iter_count+1] <= 1;                          
+                        w_current <= w_current_2 - d_signed;         
 
-                // if current w*2 is lower than -0.5
-                end else if ((w_current_2[M+extra_bits_mantissa]) && w_current_2[M + extra_bits_mantissa-1:M+extra_bits_mantissa-2] >= 2'b01) begin  
-                    q[iter_count+1] <= -1;
-                    w_current <= w_current_2 + d_signed;    
-                    
-                //if current w*2 is greater or equal to -0.5 and lower than 0.5
-                end else begin
-                    q[iter_count+1] <= 0;
-                    w_current <= w_current_2;
+                    // if current w*2 is lower than -0.5
+                    end else if ((w_current_2[M+extra_bits_mantissa]) && w_current_2[M + extra_bits_mantissa-1:M+extra_bits_mantissa-2] >= 2'b01) begin  
+                        q[iter_count+1] <= -1;
+                        w_current <= w_current_2 + d_signed;    
+                        
+                    //if current w*2 is greater or equal to -0.5 and lower than 0.5
+                    end else begin
+                        q[iter_count+1] <= 0;
+                        w_current <= w_current_2;
+                    end   
                 end
 
+                
             // Termination Phase
             end else if (iter_count == N) begin
 
-                res <= {res_sign, res_exponent, res_mantissa};
+                if (special_case_saved) begin
+                    res <= special_result_saved;   
+                    special_case_saved <= 1'b0;
+                end else begin
+                    res <= {res_sign, res_exponent, res_mantissa};
+                end
+                
                 computing <= 1'b0;
                 iter_count <= '0;
                 finish <= 1'b1;
@@ -390,6 +427,8 @@ module FPHUB_divider #(
             end else begin
                 finish <= 1'b0;
                 res <= '0;
+                special_case_saved <= 1'b0;
+                special_result_saved <= '0;
             end      
         end
     end
